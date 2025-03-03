@@ -166,7 +166,8 @@ clusters directly from the UI.
 Hit `ctrl+l` to bring up the list of clusters known to teleport. From here the
 list can be filtered to find the cluster you require.
 
-> [!note] Auth manager support
+> [!note]
+>
 > At present only `teleport` is supported.
 >
 > If you wish for another cluster authentication system to be supported, please
@@ -208,7 +209,8 @@ not automatically export that to active panes.
 To for that, it is possible to have BMX attempt to do this automatically for you
 by using the `send-keys` functionality.
 
-> [!caution] send-keys functionality
+> [!caution]
+> 
 > The send keys functionality comes with a small amount of risk and therefore is
 > placed behind the `--send-vars` flag rather than being used by default.
 >
