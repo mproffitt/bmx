@@ -91,7 +91,7 @@ panes within that session using `export $(tmux show-env COMMAND)`.
 By executing `bmx create` without any arguments, by default it will open in a
 floating popup window in the centre of the terminal.
 
-![An image of the create session window](./img/create-session.png0)
+![An image of the create session window](./img/create-session.png)
 
 If you do not wish to use the floating popup, pass the global flag `--no-popup`
 (`-n`). In this instance the UI will take up the whole of the terminal.
