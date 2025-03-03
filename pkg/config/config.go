@@ -96,7 +96,6 @@ func New() (*Config, error) {
 	}
 	c.filename = filepath.Join(configDir, configFilename)
 	if _, err := os.Stat(c.filename); err != nil && os.IsNotExist(err) {
-		err = nil
 		if err = c.createDefaultConfigIfNotExist(configDir); err != nil {
 			return nil, err
 		}

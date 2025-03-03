@@ -240,6 +240,7 @@ func (k *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case kubernetes.ContextChangeMsg:
 		k.error = k.switchContext()
+		k.lists[k.activeList].Select((k.activeItem))
 	case kubernetes.ContextDeleteMsg:
 		if k.todelete != "" {
 			k.error = kubernetes.DeleteContext(k.todelete, k.kubeconfig)
@@ -453,10 +454,10 @@ func (k *Model) reloadContextList() {
 	k.items = contexts
 	k.lists = k.createKubeLists()
 	if len(k.lists) > 0 {
-		if k.activeList > len(k.lists) {
+		if k.activeList >= len(k.lists) {
 			k.activeList = len(k.lists) - 1
 		}
-		if k.activeItem > len(k.lists[k.activeList].Items()) {
+		if k.activeItem >= len(k.lists[k.activeList].Items()) {
 			k.activeItem = len(k.lists[k.activeItem].Items()) - 1
 		}
 	}
