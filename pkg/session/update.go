@@ -75,6 +75,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					*m.overlay.parent, _ = (*m.overlay.parent).(helpers.UseOverlay).Update(msg)
 				}
 
+				// If the overlay model implements HasActiveDialog
+				// and the overlay has an active dialog, then
+				// don't continue parsing key messages and instead
+				// just break out of the switch
 				model, ok := m.overlay.model.(HasActiveDialog)
 				if ok && model.HasActiveDialog() {
 					break
