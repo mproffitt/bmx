@@ -54,15 +54,17 @@ func (k keyMap) FullHelp() [][]key.Binding {
 func mapKeys() keyMap {
 	return keyMap{
 		Down: key.NewBinding(key.WithKeys("down"),
-			key.WithHelp("↓", "move down")),
+			key.WithHelp("↓", "Move down")),
 		Enter: key.NewBinding(key.WithKeys("enter"),
 			key.WithHelp("enter", "Set current context")),
 		Pageup: key.NewBinding(key.WithKeys("pgup"),
-			key.WithHelp("pgup", "previous page")),
+			key.WithHelp("pgup", "Previous page")),
 		Pagedown: key.NewBinding(key.WithKeys("pgdown"),
-			key.WithHelp("pgdn", "next page")),
+			key.WithHelp("pgdn", "Next page")),
 		Up: key.NewBinding(key.WithKeys("up"),
-			key.WithHelp("↑", "move up")),
+			key.WithHelp("↑", "Move up")),
+		Quit: key.NewBinding(key.WithKeys("esc", "ctrl+c"),
+			key.WithHelp("esc", "Quit")),
 	}
 }
 
