@@ -22,7 +22,7 @@ package panel
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/dialog"
 )
 
 type keyMap struct {
@@ -40,11 +40,11 @@ type keyMap struct {
 	Login     key.Binding
 }
 
-func (k keyMap) ShortHelp() []key.Binding {
+func (k *keyMap) ShortHelp() []key.Binding {
 	return []key.Binding{k.Delete, k.Killpanel}
 }
 
-func (k keyMap) FullHelp() [][]key.Binding {
+func (k *keyMap) FullHelp() [][]key.Binding {
 	// Pageup and Pagedown currently do not work
 	// with the panel pager. leaving them out for now
 	return [][]key.Binding{
@@ -57,8 +57,8 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	}
 }
 
-func mapKeys() keyMap {
-	return keyMap{
+func mapKeys() *keyMap {
+	return &keyMap{
 		Delete: key.NewBinding(key.WithKeys("delete", "x"),
 			key.WithHelp("del/x", "Delete the current item")),
 		Down: key.NewBinding(key.WithKeys("down", "j"),
@@ -86,15 +86,13 @@ func mapKeys() keyMap {
 	}
 }
 
-func (m *Model) Help() string {
-	helpmsg := help.New()
-	helpmsg.Styles.FullKey = lipgloss.NewStyle().Foreground(lipgloss.Color(m.config.Style.ContextListActiveTitle))
-	helpmsg.Styles.FullDesc = lipgloss.NewStyle().Foreground(lipgloss.Color(m.config.Style.ContextListActiveDescription))
-	helpmsg.ShowAll = true
-	help := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(m.config.Style.FocusedColor)).
-		PaddingTop(1).
-		Render("Context Pane")
-	help = lipgloss.JoinVertical(lipgloss.Left, help, helpmsg.View(m.keymap))
-	return help
+func (m *Model) Help() dialog.HelpEntry {
+	km := help.KeyMap(m.keymap)
+	entry := dialog.HelpEntry{
+		Keymap: &km,
+		Title:  "Kubernetes Context Panel",
+		Help: "The kubernetes context panel allows you to interact\nwith" +
+			" contexts inside the kube-config for the current\nsession",
+	}
+	return entry
 }

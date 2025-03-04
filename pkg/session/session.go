@@ -70,7 +70,7 @@ type model struct {
 	filter   textinput.Model
 	focused  FocusType
 	height   int
-	keymap   keyMap
+	keymap   *keyMap
 	list     list.Model
 	overlay  *overlayContainer
 	preview  viewport.Model
@@ -166,7 +166,7 @@ func (m *model) handleDialog(status dialog.Status) (tea.Cmd, error) {
 		case dialog.Confirm:
 			err = kubernetes.DeleteConfig(m.session.Name)
 			if err == nil {
-				err = tmux.KillSession(m.session.Name)
+				err = tmux.KillSwitch(m.session.Name, m.config.DefaultSession)
 			}
 			m.list.Select(0)
 			fallthrough

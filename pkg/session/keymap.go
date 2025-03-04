@@ -19,7 +19,11 @@
 
 package session
 
-import "github.com/charmbracelet/bubbles/key"
+import (
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/mproffitt/bmx/pkg/dialog"
+)
 
 type keyMap struct {
 	CtrlN    key.Binding
@@ -31,11 +35,11 @@ type keyMap struct {
 	Tab      key.Binding
 }
 
-func (k keyMap) ShortHelp() []key.Binding {
+func (k *keyMap) ShortHelp() []key.Binding {
 	return []key.Binding{k.Help, k.Quit}
 }
 
-func (k keyMap) FullHelp() [][]key.Binding {
+func (k *keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
 			k.CtrlN, k.Delete, k.Enter, k.Help,
@@ -46,8 +50,8 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	}
 }
 
-func mapKeys() keyMap {
-	return keyMap{
+func mapKeys() *keyMap {
+	return &keyMap{
 		CtrlN: key.NewBinding(key.WithKeys("ctrl+n"),
 			key.WithHelp("ctrl+n", "Create new session")),
 		Delete: key.NewBinding(key.WithKeys("delete", "x"),
@@ -63,4 +67,13 @@ func mapKeys() keyMap {
 		Tab: key.NewBinding(key.WithKeys("tab"),
 			key.WithHelp("↹", "Next pane")),
 	}
+}
+
+func (m *model) Help() dialog.HelpEntry {
+	km := help.KeyMap(m.keymap)
+	entry := dialog.HelpEntry{
+		Keymap: &km,
+		Title:  "Session manager",
+	}
+	return entry
 }

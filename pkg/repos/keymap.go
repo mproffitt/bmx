@@ -22,20 +22,22 @@ package repos
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/dialog"
 )
 
 type keyMap struct {
 	Down     key.Binding
 	Enter    key.Binding
+	Help     key.Binding
 	Pageup   key.Binding
 	Pagedown key.Binding
 	Quit     key.Binding
 	Up       key.Binding
+	All      key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Enter, k.Quit}
+	return []key.Binding{k.Enter, k.Quit, k.Help}
 }
 
 func (k keyMap) FullHelp() [][]key.Binding {
@@ -43,10 +45,10 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	// with the panel pager. leaving them out for now
 	return [][]key.Binding{
 		{
-			k.Enter, k.Quit,
+			k.Enter, k.Quit, k.Help, k.Pagedown,
 		},
 		{
-			k.Up, k.Down, k.Pageup, k.Pagedown,
+			k.Up, k.Down, k.Pageup, k.All,
 		},
 	}
 }
@@ -57,6 +59,8 @@ func mapKeys() keyMap {
 			key.WithHelp("↓", "Move down")),
 		Enter: key.NewBinding(key.WithKeys("enter"),
 			key.WithHelp("enter", "Set current context")),
+		Help: key.NewBinding(key.WithKeys("?", "f1"),
+			key.WithHelp("?", "help")),
 		Pageup: key.NewBinding(key.WithKeys("pgup"),
 			key.WithHelp("pgup", "Previous page")),
 		Pagedown: key.NewBinding(key.WithKeys("pgdown"),
@@ -65,13 +69,15 @@ func mapKeys() keyMap {
 			key.WithHelp("↑", "Move up")),
 		Quit: key.NewBinding(key.WithKeys("esc", "ctrl+c"),
 			key.WithHelp("esc", "Quit")),
+		All: key.NewBinding(key.WithKeys("*"), key.WithHelp("*", "filter table")),
 	}
 }
 
-func (m *Model) Help() string {
-	helpmsg := help.New()
-	helpmsg.ShowAll = true
-	help := lipgloss.NewStyle().Foreground(lipgloss.Color(m.config.Style.FocusedColor)).Render("Context Pane")
-	help = lipgloss.JoinVertical(lipgloss.Left, help, helpmsg.View(m.keymap))
-	return help
+func (m *Model) Help() dialog.HelpEntry {
+	km := help.KeyMap(m.keymap)
+	entry := dialog.HelpEntry{
+		Keymap: &km,
+		Title:  "New session",
+	}
+	return entry
 }

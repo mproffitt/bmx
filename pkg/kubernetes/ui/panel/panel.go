@@ -55,7 +55,7 @@ type Model struct {
 	focused    bool
 	height     int
 	items      []kubernetes.KubeContext
-	keymap     keyMap
+	keymap     *keyMap
 	kubeconfig string
 	lists      []list.Model
 	listWidth  int

@@ -33,6 +33,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
 	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/dialog"
 	"github.com/mproffitt/bmx/pkg/helpers"
 )
 
@@ -73,6 +74,7 @@ type Model struct {
 
 	config      *config.Config
 	callback    func(table.RowData, string, bool) tea.Cmd
+	dialog      tea.Model
 	filterInput textinput.Model
 	height      int
 	isOverlay   bool
@@ -142,6 +144,10 @@ func (m *Model) Overlay() helpers.UseOverlay {
 	return m
 }
 
+func (m *Model) HasActiveDialog() bool {
+	return m.dialog != nil
+}
+
 func (m *Model) SetSize(width, height int) {
 	m.width = width
 	m.height = height
@@ -151,13 +157,25 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
-	m.table, cmd = m.table.Update(msg)
-	cmds = append(cmds, cmd)
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+
+		// Dialog needs to be handled first as it's an overlay
+		// to the main window and takes precedence over all
+		// other elements
+		if m.dialog != nil {
+			m.dialog, cmd = m.dialog.Update(msg)
+			// cmd, err = m.handleDialog(msg)
+			return m, cmd
+		}
+		m.table, cmd = m.table.Update(msg)
+		cmds = append(cmds, cmd)
+
 		switch {
 		case key.Matches(msg, m.keymap.Quit):
+			if m.dialog != nil {
+				break
+			}
 			if m.isOverlay {
 				return m, nil
 			}
@@ -166,6 +184,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			current := m.table.HighlightedRow()
 			filter := m.table.GetCurrentFilter()
 			return m, m.callback(current.Data, filter, m.config.CreateSessionKubeConfig)
+		case key.Matches(msg, m.keymap.Help):
+			m.displayHelp()
 		case key.Matches(msg, m.keymap.Pagedown, m.keymap.Pageup):
 			break
 		case key.Matches(msg, m.keymap.Down, m.keymap.Up):
@@ -176,6 +196,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.filterInput.Blur()
 			m.table = m.table.WithFilterInput(m.filterInput)
 		}
+	case dialog.DialogStatusMsg:
+		if msg.Done {
+			m.dialog = nil
+		}
 	case spinner.TickMsg:
 		if m.spinner != nil {
 			*m.spinner, cmd = m.spinner.Update(msg)
@@ -183,9 +207,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.drawTable()
 		}
 	case tea.WindowSizeMsg:
+		m.table, cmd = m.table.Update(msg)
+		cmds = append(cmds, cmd)
 		m.width = msg.Width
 		m.height = msg.Height
-		return m, nil
+	default:
+		m.table, cmd = m.table.Update(msg)
+		cmds = append(cmds, cmd)
 	}
 	return m, tea.Batch(cmds...)
 }
@@ -209,13 +237,21 @@ func (m *Model) View() string {
 	filter := m.styles.filter.Width(m.width - 2).Render(m.filterInput.View())
 	body.WriteString(filter)
 
+	doc := m.styles.table.Render(body.String())
+	if m.dialog != nil {
+		dw, _ := m.dialog.(*dialog.Dialog).GetSize()
+		w := m.width/2 - max(dw, config.DialogWidth)/2
+		doc = helpers.PlaceOverlay(w, 10, m.dialog.View(),
+			doc, false)
+	}
+
 	if m.isOverlay {
 		m.viewport = viewport.New(m.width, m.height)
-		m.viewport.SetContent(m.styles.table.Render(body.String()))
+		m.viewport.SetContent(doc)
 		return m.styles.viewport.Render(m.viewport.View())
 	}
 
-	return m.styles.table.Render(body.String())
+	return doc
 }
 
 func (m *Model) loadData(paths []string) {

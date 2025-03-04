@@ -19,7 +19,9 @@
 
 package helpers
 
-import tea "github.com/charmbracelet/bubbletea"
+import (
+	tea "github.com/charmbracelet/bubbletea"
+)
 
 type OverlayMsg struct {
 	Message any
@@ -49,8 +51,4 @@ type UseOverlay interface {
 	Overlay() UseOverlay
 	Update(tea.Msg) (tea.Model, tea.Cmd)
 	GetSize() (int, int)
-}
-
-type UseHelp interface {
-	Help() string
 }

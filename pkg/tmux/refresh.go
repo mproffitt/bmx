@@ -43,6 +43,13 @@ func findShell(shell string) bool {
 	return false
 }
 
+// Refresh the TMUX environment
+//
+// This causes tmux to reload all its configs, then optionally
+// sends the KUBECONFIG environment variable,
+//
+// If sendVars is true, it will also trigger writing the export
+// command to all shells
 func Refresh(includeKubeconfig, sendVars bool) error {
 	args := []string{
 		"display-message", "-p", "#{config_files}",
@@ -76,6 +83,7 @@ func Refresh(includeKubeconfig, sendVars bool) error {
 	return nil
 }
 
+// Send an update to TMUX for the KUBECONFIG session name
 func UpdateSessionEnvironment() error {
 	for _, session := range ListSessions() {
 		configFile, err := kubernetes.CreateConfig(session.Name)

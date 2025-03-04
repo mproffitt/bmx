@@ -31,6 +31,15 @@ import (
 	"github.com/mproffitt/bmx/pkg/tmux"
 )
 
+// Has the current overlay got an active dialog on it
+type HasActiveDialog interface {
+	HasActiveDialog() bool
+}
+
+// This is the main logic switch for all UI behaviour in the
+// app. The purpose of this is to direct messages to the correct
+// location, only updating enabled or focused views as and when
+// required and blocking flow when not required.
 func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var (
 		cmd               tea.Cmd
@@ -49,7 +58,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.dialog != nil {
 			m.dialog, cmd = m.dialog.Update(msg)
 			// cmd, err = m.handleDialog(msg)
-			cmds = append(cmds, cmd)
+			return m, cmd
 		}
 
 		// Main window key handling
@@ -64,6 +73,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				default:
 					*m.overlay.parent, _ = (*m.overlay.parent).(helpers.UseOverlay).Update(msg)
+				}
+
+				model, ok := m.overlay.model.(HasActiveDialog)
+				if ok && model.HasActiveDialog() {
+					break
 				}
 				m.focused = m.overlay.previous
 				m.overlay = nil
@@ -122,6 +136,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.Delete):
 			m.delete(msg)
 		case key.Matches(msg, m.keymap.Help):
+			if m.focused == overlay {
+				var model tea.Model
+				model, cmd = m.overlay.model.Update(msg)
+				m.overlay.model = model.(helpers.UseOverlay)
+				return m, cmd
+			}
 			m.displayHelp()
 		default:
 			switch m.focused {
@@ -170,6 +190,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 	case dialog.DialogStatusMsg:
+		if m.focused == overlay {
+			var model tea.Model
+			model, cmd = m.overlay.model.Update(msg)
+			m.overlay.model = model.(helpers.UseOverlay)
+			return m, cmd
+		}
 		if msg.Done {
 			cmd, err = m.handleDialog(msg.Selected)
 			cmds = append(cmds, cmd)
