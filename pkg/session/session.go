@@ -184,6 +184,9 @@ func (m *model) setItems() {
 // in order to better lay-out the frame and not have to
 // disable if the term size is too small
 func (m *model) resize() {
+	if m.width < config.MinWidth || m.height < config.MinHeight {
+		return
+	}
 	_, v := m.styles.sessionlist.GetFrameSize()
 	m.list.SetSize(listWidth, m.height-(paddingMultiplier*v))
 	w, _ := m.styles.viewportNormal.GetFrameSize()
