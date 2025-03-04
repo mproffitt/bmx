@@ -20,6 +20,7 @@
 package dialog
 
 import (
+	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
@@ -35,6 +36,8 @@ const (
 	Cancel
 )
 
+const DialogHeight = 15
+
 type Dialog struct {
 	active     Status
 	done       bool
@@ -44,6 +47,7 @@ type Dialog struct {
 	message    string
 	standalone bool
 	styles     styles
+	viewport   viewport.Model
 	width      int
 }
 
@@ -65,11 +69,55 @@ func DialogStatusCmd(message DialogStatusMsg) tea.Cmd {
 	}
 }
 
+// Creates a new confirmation dialog
+//
+// This is a convenience method to create a confirmation dialog
+// containing both yes and no buttons
+func NewConfirmDialog(message string, config *config.Config, width int) tea.Model {
+	return New(message, false, config, false, width)
+}
+
+// Creates a new OK dialog
+//
+// This is a convenience method to create a confirmation dialog
+// that only has an OK button
+func NewOKDialog(message string, config *config.Config, width int) tea.Model {
+	return New(message, true, config, false, width)
+}
+
+// Create a new standalone confirmation dialog
+//
+// # For standalone applications only
+//
+// This is a convenience method for creating dialogs that run inside
+// a TMUX popup window.
+//
+// This method should not be used from inside the main window.
+// Use NewConfirmDialog for that
+func NewStandaloneConfirmDialog(message string, config *config.Config, width int) tea.Model {
+	return New(message, false, config, true, width)
+}
+
+// Create a new OK dialog
+//
+// # For standalone applications only
+//
+// This is a convenience method for creating an OK dialog
+// that runs inside a TMUX popup window.
+//
+// This method should not be used from inside the main window.
+// Use NewOKDialog for that
+func NewStanaloneOKDialog(message string, config *config.Config, width int) tea.Model {
+	return New(message, true, config, true, width)
+}
+
 func New(message string, cancelOnly bool, c *config.Config, standalone bool, width int) tea.Model {
+	height := min(DialogHeight, lipgloss.Height(message))
 	d := Dialog{
 		active:     Cancel,
-		hasConfirm: !cancelOnly,
 		config:     c,
+		hasConfirm: !cancelOnly,
+		height:     height,
 		message:    message,
 		standalone: standalone,
 		styles: styles{
@@ -93,7 +141,8 @@ func New(message string, cancelOnly bool, c *config.Config, standalone bool, wid
 				Padding(0, 3).
 				Underline(true),
 		},
-		width: width,
+		viewport: viewport.New(width, height),
+		width:    width,
 	}
 	if standalone {
 		d.styles.dialog = lipgloss.NewStyle().Padding(1, 0)
@@ -111,6 +160,11 @@ func (m *Dialog) Overlay() helpers.UseOverlay {
 
 func (m *Dialog) GetSize() (int, int) {
 	return m.width, m.height
+}
+
+func (m *Dialog) SetSize(w, h int) {
+	m.height = h
+	m.width = w
 }
 
 func (m *Dialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -134,6 +188,8 @@ func (m *Dialog) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.done = true
 		case "enter":
 			m.done = true
+		default:
+			m.viewport, _ = m.viewport.Update(msg)
 		}
 	}
 	if m.standalone && m.done {
@@ -171,6 +227,7 @@ func (m *Dialog) View() string {
 		style = style.Height(m.height)
 	}
 	question := style.Render(m.message)
+	m.viewport.SetContent(question)
 
-	return m.styles.dialog.Render(lipgloss.JoinVertical(lipgloss.Center, question, buttons))
+	return m.styles.dialog.Render(lipgloss.JoinVertical(lipgloss.Center, m.viewport.View(), buttons))
 }
