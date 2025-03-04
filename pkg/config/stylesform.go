@@ -39,6 +39,7 @@ type stylesmodel struct {
 	groups  []*huh.Group
 }
 
+// The styles options tab
 func NewStylesModel(c *Config) *stylesmodel {
 	s := stylesmodel{
 		config: c,

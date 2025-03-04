@@ -38,6 +38,7 @@ const (
 type Config struct {
 	Paths                    []string `yaml:"paths"`
 	CreateSessionKubeConfig  bool     `yaml:"createSessionKubeConfig"`
+	DefaultSession           string   `yaml:"defaultSession"`
 	ManageSessionKubeContext bool     `yaml:"manageSessionKubeContext"`
 	Style                    Style    `yaml:"style"`
 	filename                 string
@@ -106,6 +107,11 @@ style:
 
 const configFilename = "config.yaml"
 
+// Create a new config object
+//
+// This will create a new Config object and load the config from disk
+// If the configuration can't be found, a UI will be shown to help
+// create the config. This is then stored at `~/.config/{appname}/config.yaml`
 func New() (*Config, error) {
 	c := Config{}
 
@@ -123,24 +129,22 @@ func New() (*Config, error) {
 	return &c, err
 }
 
+// Get the name of the config file being used
+//
+// This returns a full path to the config file on disk
 func (c *Config) GetConfigFile() string {
 	return c.filename
 }
 
-func (c *Config) getConfigDir() (string, error) {
-	userConfigDir, err := os.UserConfigDir()
-	if err != nil {
-		return "", fmt.Errorf("failed to find user config directory: %w", err)
-	}
+func (c *Config) createConfig() error {
+	m := NewConfigModel(c)
+	m.createTabContents()
 
-	configDir := filepath.Join(userConfigDir, helpers.ExecutableName())
-	_, err = os.Stat(configDir)
-	if err != nil && os.IsNotExist(err) {
-		if err = c.createDefaultConfigIfNotExist(configDir); err != nil {
-			return "", err
-		}
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	if _, err := p.Run(); err != nil {
+		return fmt.Errorf("error running program %w", err)
 	}
-	return configDir, nil
+	return nil
 }
 
 func (c *Config) createDefaultConfigIfNotExist(configDir string) error {
@@ -168,17 +172,20 @@ func (c *Config) createDefaultConfigIfNotExist(configDir string) error {
 	return nil
 }
 
-func (c *Config) writeConfig(filename string) error {
-	contents, err := yaml.Marshal(*c)
+func (c *Config) getConfigDir() (string, error) {
+	userConfigDir, err := os.UserConfigDir()
 	if err != nil {
-		return err
-	}
-	err = os.WriteFile(filename, []byte(contents), 0640)
-	if err != nil {
-		return fmt.Errorf("failed to write config file %w", err)
+		return "", fmt.Errorf("failed to find user config directory: %w", err)
 	}
 
-	return nil
+	configDir := filepath.Join(userConfigDir, helpers.ExecutableName())
+	_, err = os.Stat(configDir)
+	if err != nil && os.IsNotExist(err) {
+		if err = c.createDefaultConfigIfNotExist(configDir); err != nil {
+			return "", err
+		}
+	}
+	return configDir, nil
 }
 
 func (c *Config) loadConfig(filename string) error {
@@ -190,13 +197,15 @@ func (c *Config) loadConfig(filename string) error {
 	return err
 }
 
-func (c *Config) createConfig() error {
-	m := NewConfigModel(c)
-	m.createTabContents()
-
-	p := tea.NewProgram(m, tea.WithAltScreen())
-	if _, err := p.Run(); err != nil {
-		return fmt.Errorf("error running program %w", err)
+func (c *Config) writeConfig(filename string) error {
+	contents, err := yaml.Marshal(*c)
+	if err != nil {
+		return err
 	}
+	err = os.WriteFile(filename, []byte(contents), 0640)
+	if err != nil {
+		return fmt.Errorf("failed to write config file %w", err)
+	}
+
 	return nil
 }

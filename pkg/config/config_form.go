@@ -53,6 +53,13 @@ type configModelStyles struct {
 	tabGap          lipgloss.Style
 }
 
+// Create a new configuration UI model
+//
+// The config UI is there to help guide users through the
+// process of creating and managing the UI config.
+//
+// Although the primary config is fairly basic, this helps
+// guide users in its creation.
 func NewConfigModel(c *Config) *configModel {
 	highlight := lipgloss.Color(c.Style.FocusedColor)
 	m := configModel{
@@ -116,10 +123,12 @@ func NewConfigModel(c *Config) *configModel {
 	return &m
 }
 
+// Initialise the model and forms
 func (c *configModel) Init() tea.Cmd {
 	return tea.Batch(c.mainform.Init(), c.stylesform.Init())
 }
 
+// Recieve and process updates from the application
 func (c *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -146,6 +155,7 @@ func (c *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return c, cmd
 }
 
+// render the config screens
 func (c *configModel) View() string {
 	c.createTabContents()
 	doc := strings.Builder{}
@@ -194,18 +204,4 @@ func (c *configModel) makeMainTab() string {
 
 func (c *configModel) makeStylesTab() string {
 	return c.stylesform.View()
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

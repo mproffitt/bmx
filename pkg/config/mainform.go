@@ -39,6 +39,7 @@ type mainmodel struct {
 	fields  []huh.Field
 }
 
+// The primary configuration options tab
 func NewMainModel(c *Config) *mainmodel {
 	m := mainmodel{
 		config: c,
@@ -113,6 +114,10 @@ func (m *mainmodel) createOrUpdateForm() {
 		Options(huh.NewOptions(optionManageKubeConfig, optionManageKubeContext)...).
 		Title("Manage kube config").
 		Value(&m.options))
+
+	m.fields = append(m.fields, huh.NewInput().
+		Title("Default fallback session").
+		Value(&m.config.DefaultSession))
 
 	for i := range cap(m.paths) {
 		m.fields = append(m.fields, huh.NewFilePicker().
