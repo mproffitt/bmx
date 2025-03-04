@@ -285,6 +285,10 @@ func (k *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					cmd = kubernetes.ContextDeleteCmd()
 					cmds = append(cmds, cmd)
 				}
+			case dialog.Cancel:
+				if k.todelete != "" {
+					k.todelete = ""
+				}
 			}
 		}
 	}
