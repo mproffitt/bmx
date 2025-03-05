@@ -20,6 +20,7 @@
 package panel
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"strings"
@@ -60,7 +61,7 @@ type Model struct {
 	lists      []list.Model
 	listWidth  int
 	options    tea.Model
-	paginator  paginator.Model
+	paginator  *paginator.Model
 	rows       int
 	session    string
 	styles     contextStyles
@@ -68,6 +69,7 @@ type Model struct {
 	tomove     string
 	viewport   viewport.Model
 	width      int
+	tstmsg     string
 }
 
 type contextStyles struct {
@@ -91,7 +93,7 @@ func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth in
 		config:     c,
 		keymap:     mapKeys(),
 		listWidth:  min(columnWidth, KubernetesListWidth),
-		paginator: paginator.Model{
+		paginator: &paginator.Model{
 			ActiveDot:    lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "235", Dark: "252"}).Render("•"),
 			ArabicFormat: "%d/%d",
 			InactiveDot:  lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "250", Dark: "238"}).Render("•"),
@@ -234,10 +236,19 @@ func (k *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			} else {
 				k.activeItem += 1
 			}
+
+			// PAGE Up and Page down
 		case key.Matches(msg, k.keymap.Pageup):
 			k.paginator.PrevPage()
+			k.activeList, _ = k.paginator.GetSliceBounds(len(k.lists))
+			k.activeItem = 0
 		case key.Matches(msg, k.keymap.Pagedown):
 			k.paginator.NextPage()
+			k.activeList, _ = k.paginator.GetSliceBounds(len(k.lists))
+			k.activeItem = 0
+
+			// END
+
 		case key.Matches(msg, k.keymap.Delete):
 			k.todelete = k.lists[k.activeList].SelectedItem().(list.DefaultItem).Title()
 		case key.Matches(msg, k.keymap.Space):
@@ -357,7 +368,7 @@ func (k *Model) View() string {
 	cols := k.createPaginatedColumns()
 	title := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(k.config.Style.Title)).Align(lipgloss.Left).
-		Render("Kubernetes Contexts : " + k.kubeconfig)
+		Render("Kubernetes Contexts : " + k.kubeconfig + fmt.Sprintf(" (%d) %s", k.paginator.Page, k.tstmsg))
 
 	nocontexts := lipgloss.NewStyle().Foreground(lipgloss.Color(k.config.Style.FocusedColor)).
 		Padding(2).

@@ -88,6 +88,11 @@ func KubeContextList(shouldManage bool, filename string) ([]KubeContext, error) 
 	return list, err
 }
 
+// Gets the fullname of a context
+//
+// Shortened names are used for display but for
+// certain actions, the full name of the context is
+// required.
 func GetFullName(name, filename string) string {
 	list, err := KubeContextList(true, filename)
 	if err == nil {
@@ -123,6 +128,7 @@ func getApiConfig(filename string) (*clientcmd.PathOptions, *api.Config, error) 
 	return options, config, nil
 }
 
+// Changes the configs current context to the name provided
 func SetCurrentContext(name, filename string) error {
 	// Sets the current kubeconfig context to the value selected
 	fullname := GetFullName(name, filename)

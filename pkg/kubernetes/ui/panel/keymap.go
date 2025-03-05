@@ -52,7 +52,7 @@ func (k *keyMap) FullHelp() [][]key.Binding {
 			k.Delete, k.Enter, k.Killpanel, k.Move, k.Space,
 		},
 		{
-			k.Up, k.Down, k.Left, k.Right, k.Login,
+			k.Up, k.Down, k.Left, k.Right, k.Login, k.Pageup, k.Pagedown,
 		},
 	}
 }
