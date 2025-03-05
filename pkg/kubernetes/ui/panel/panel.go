@@ -20,7 +20,6 @@
 package panel
 
 import (
-	"fmt"
 	"math"
 	"os"
 	"strings"
@@ -69,7 +68,6 @@ type Model struct {
 	tomove     string
 	viewport   viewport.Model
 	width      int
-	tstmsg     string
 }
 
 type contextStyles struct {
@@ -387,7 +385,7 @@ func (k *Model) View() string {
 	cols := k.createPaginatedColumns()
 	title := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(k.config.Style.Title)).Align(lipgloss.Left).
-		Render("Kubernetes Contexts : " + k.kubeconfig + fmt.Sprintf(" (%d) %s", k.paginator.Page, k.tstmsg))
+		Render("Kubernetes Contexts : " + k.kubeconfig)
 
 	nocontexts := lipgloss.NewStyle().Foreground(lipgloss.Color(k.config.Style.FocusedColor)).
 		Padding(2).
