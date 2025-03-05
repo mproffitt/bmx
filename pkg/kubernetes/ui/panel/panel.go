@@ -336,12 +336,31 @@ func (k *Model) UpdateContextList(session, kubeconfig string) tea.Model {
 	k.activeItem = 0
 	k.activeList = 0
 	k.lists = k.createKubeLists()
-	k.paginator.Page = 0
 	pages := float64(len(k.items)) / float64(k.rows*k.cols)
 	k.paginator.TotalPages = max(1, int(math.Ceil(pages)))
-	// k.paginator.Page = k.findActiveContextPage()
+	k.setActiveContextPage()
 
 	return k
+}
+
+func (k *Model) setActiveContextPage() {
+	page := k.paginator.Page
+	for i := 0; i < k.paginator.TotalPages; i++ {
+		k.paginator.Page = i
+		start, end := k.paginator.GetSliceBounds(len(k.lists))
+		for j := start; j < end; j++ {
+			items := k.lists[j].Items()
+			for l := 0; l < len(items); l++ {
+				if items[l].(kubernetes.KubeContext).IsCurrentContext {
+					k.activeItem = l
+					k.activeList = j
+					k.lists[k.activeList].Select((k.activeItem))
+					return
+				}
+			}
+		}
+	}
+	k.paginator.Page = page
 }
 
 func (k *Model) SetSize(width, height, columnWidth int) tea.Model {

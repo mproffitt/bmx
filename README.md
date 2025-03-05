@@ -210,7 +210,7 @@ To for that, it is possible to have BMX attempt to do this automatically for you
 by using the `send-keys` functionality.
 
 > [!caution]
-> 
+>
 > The send keys functionality comes with a small amount of risk and therefore is
 > placed behind the `--send-vars` flag rather than being used by default.
 >
@@ -252,7 +252,7 @@ Add the following to the bottom of your `.bash_profile` or `.zshrc` file
 to have BMX automatically set up the TMUX environment and ensure your
 kubeconfig files are always loaded correctly.
 
-```zshrc
+```bash
 # Autorun TMUX
 # Keep this at bottom of script
 if [ -z "${TMUX}" ]; then
@@ -267,6 +267,7 @@ export $(tmux show-env KUBECONFIG)
 
 - When resizing the window, there is a bug in the resize functionalty that
   causes the terminal to hang if the screen size drops below `110x30`.
+  For now, resizing is disabled if the window falls below this threshold
 
 If you find a bug, please feel free to raise an issue or pull request
 
@@ -281,9 +282,9 @@ Windows
 
 - Implement arbitrary session management
 - Enable kube-context management to be run in standalone mode
-- Scroll to view for active context
+- ~Scroll to view for active context~
 - New session from cluster login (for now, you have to create the session first)
-- Return to named session on session destroy
+- ~Return to named session on session destroy~
 - Maybe write some unit tests?
 
 ## Out of scope
