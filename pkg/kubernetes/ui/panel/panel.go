@@ -333,10 +333,13 @@ func (k *Model) UpdateContextList(session, kubeconfig string) tea.Model {
 
 	k.activeItem = 0
 	k.activeList = 0
+	k.paginator.Page = 0
 	k.lists = k.createKubeLists()
 	pages := float64(len(k.items)) / float64(k.rows*k.cols)
 	k.paginator.TotalPages = max(1, int(math.Ceil(pages)))
-	k.setActiveContextPage()
+	if k.paginator.TotalPages > 1 {
+		k.setActiveContextPage()
+	}
 
 	return k
 }
