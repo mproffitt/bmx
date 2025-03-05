@@ -44,9 +44,8 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 	}
 
 	// Dialog cannot delete active session, use kill instead
-	m.dialog = dialog.New(
-		"Cannot delete the current active session",
-		true, m.config, false, config.DialogWidth)
+	m.dialog = dialog.NewOKDialog(
+		"Cannot delete the current active session", m.config, config.DialogWidth)
 	if !m.session.Attached {
 		m.deleting = true
 		builder := strings.Builder{}
@@ -62,8 +61,7 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 			builder.WriteString("and log you out of all clusters")
 		}
 
-		m.dialog = dialog.New(builder.String(),
-			false, m.config, false, config.DialogWidth)
+		m.dialog = dialog.NewConfirmDialog(builder.String(), m.config, config.DialogWidth)
 	}
 	m.dialog.Update(msg)
 	return nil

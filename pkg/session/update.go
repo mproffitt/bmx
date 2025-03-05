@@ -228,7 +228,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// handle error in dialog
 	if err != nil {
-		m.dialog = dialog.New(err.Error(), true, m.config, false, config.DialogWidth)
+		m.dialog = dialog.NewOKDialog(err.Error(), m.config, config.DialogWidth)
 		m.dialog, cmd = m.dialog.Update(msg)
 		cmds = append(cmds, cmd)
 	}

@@ -161,8 +161,7 @@ func (k *Model) Overlay() helpers.UseOverlay {
 				Padding(1).
 				Render(k.todelete)))
 		builder.WriteString("\ndeleting means you will no longer be logged in to this cluster")
-		dialog := dialog.New(builder.String(),
-			false, k.config, false, config.DialogWidth)
+		dialog := dialog.NewConfirmDialog(builder.String(), k.config, config.DialogWidth)
 		return dialog.(helpers.UseOverlay)
 	}
 
