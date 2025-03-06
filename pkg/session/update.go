@@ -147,6 +147,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 			m.displayHelp()
+		case key.Matches(msg, m.keymap.ToggleZoom):
+			if m.focused == previewPane {
+				m.zoomed = !m.zoomed
+			}
 		default:
 			switch m.focused {
 			case contextPane:

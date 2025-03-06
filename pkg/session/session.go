@@ -38,16 +38,10 @@ import (
 )
 
 const (
-	listWidth         = 26
-	previewWidth      = 80
-	previewHeight     = 30
-	paddingMultiplier = 5
-
-	/*sessionList             = "list"
-	previewPane             = "preview"
-	contextPane             = "kubernetes"
-	overlay                 = "overlay"
-	dialogp                 = "dialog"*/
+	listWidth               = 26
+	previewWidth            = 80
+	previewHeight           = 30
+	paddingMultiplier       = 5
 	kubernetesSessionHeight = .4
 )
 
@@ -78,6 +72,7 @@ type model struct {
 
 	styles styles
 	width  int
+	zoomed bool
 }
 
 type styles struct {
@@ -106,13 +101,14 @@ func New(c *config.Config) *model {
 			viewportNormal: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color(c.Style.BorderFgColor)).
-				PaddingRight(2),
+				MarginRight(1),
 			viewportFocused: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color(c.Style.FocusedColor)).
-				PaddingRight(2),
+				MarginRight(1),
 			delegates: delegates{},
 		},
+		zoomed: true,
 	}
 
 	m.styles.delegates.normal = m.createListNormalDelegate()
@@ -206,10 +202,10 @@ func (m *model) resize() {
 	if m.width < config.MinWidth || m.height < config.MinHeight {
 		return
 	}
-	_, v := m.styles.sessionlist.GetFrameSize()
+	l, v := m.styles.sessionlist.GetFrameSize()
 	m.list.SetSize(listWidth, m.height-(paddingMultiplier*v))
 	w, _ := m.styles.viewportNormal.GetFrameSize()
-	m.preview.Width = (m.width - listWidth) - (paddingMultiplier * w)
+	m.preview.Width = (m.width - listWidth) - (w + l*2) + 1 // (paddingMultiplier * w / 2)
 	m.preview.Height = (m.height - 2)
 	if m.config.ManageSessionKubeContext {
 		sessionHeight := int(math.Ceil(float64(m.height) * kubernetesSessionHeight))
@@ -226,6 +222,6 @@ func (m *model) resize() {
 			m.context = panel.NewKubectxPane(m.config, session, rows, cols, colWidth)
 		}
 		m.preview.Height = (m.height - 3) - sessionHeight - 1
-		m.context = m.context.(*panel.Model).SetSize(m.preview.Width, sessionHeight, colWidth)
+		m.context = m.context.(*panel.Model).SetSize(m.preview.Width-4, sessionHeight, colWidth)
 	}
 }

@@ -26,6 +26,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/dialog"
+	"github.com/muesli/reflow/wordwrap"
 )
 
 func (m *model) delete(msg tea.Msg) tea.Cmd {
@@ -43,22 +44,26 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 		return cmd
 	}
 
+	width := config.DialogWidth - 4
+	message := "Cannnot delete the current active session"
 	// Dialog cannot delete active session, use kill instead
-	m.dialog = dialog.NewOKDialog(
-		"Cannot delete the current active session", m.config, config.DialogWidth)
+	m.dialog = dialog.NewOKDialog(wordwrap.String(message, width),
+		m.config, config.DialogWidth)
 	if !m.session.Attached {
 		m.deleting = true
+		message = "Are you sure you want to delete session\n"
 		builder := strings.Builder{}
-		builder.WriteString("Are you sure you want to delete session\n")
-		builder.WriteString(lipgloss.PlaceHorizontal(config.DialogWidth, lipgloss.Center,
+		builder.WriteString(wordwrap.String(message, width))
+		builder.WriteString(lipgloss.PlaceHorizontal(width, lipgloss.Center,
 			lipgloss.NewStyle().
 				Bold(true).
+				Padding(1, 0).
 				Foreground(lipgloss.Color(m.config.Style.FocusedColor)).
-				Padding(1).
 				Render(m.session.Name)))
 		if m.config.CreateSessionKubeConfig {
-			builder.WriteString("\nThis will remove the associated kubeconfig")
-			builder.WriteString("and log you out of all clusters")
+			message = wordwrap.String("This will remove the associated kubeconfig"+
+				" and log you out of all clusters\n", width)
+			builder.WriteString(message)
 		}
 
 		m.dialog = dialog.NewConfirmDialog(builder.String(), m.config, config.DialogWidth)

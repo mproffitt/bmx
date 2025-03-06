@@ -227,7 +227,7 @@ func NewSessionOrAttach(in map[string]any, filter string, includeKubeConfig bool
 	return CreateSession(repo, path, command, includeKubeConfig, true)
 }
 
-// Get the patrh for a given session
+// Get the path for a given session
 //
 // This calls tmux display-message #{session_path} and if that returns
 // empty, returns the user home directory instead
@@ -245,14 +245,25 @@ func SessionPath(name string) string {
 // List all panes in a given session
 func SessionPanes(session string) ([]string, error) {
 	args := []string{
-		"lsp", "-t", session, "-F", "#{pane_id}",
+		"list-panes", "-t", session, "-F", "#{pane_id}",
 	}
 	output, _, err := Exec(args)
 	if err != nil {
 		return []string{}, err
 	}
-	panes := strings.Split(strings.TrimSpace(output), "\n")
-	return panes, nil
+	return strings.Split(output, "\n"), nil
+}
+
+func SessionWindows(session string) ([]string, error) {
+	args := []string{
+		"list-windows", "-t", session, "-F", "#S:#I",
+	}
+	out, _, err := Exec(args)
+	if err != nil {
+		return []string{}, err
+	}
+
+	return strings.Split(out, "\n"), nil
 }
 
 // List all tmux sessions and sort them by the order provided

@@ -29,6 +29,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes/ui/panel"
 	"github.com/mproffitt/bmx/pkg/tmux"
+	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui"
 )
 
 func (m *model) View() string {
@@ -37,9 +38,30 @@ func (m *model) View() string {
 		current = m.list.Items()[0]
 	}
 	session := current.(list.DefaultItem).Title()
-	panes, _ := tmux.SessionPanes(session)
-	preview, _ := tmux.CapturePane(panes[0])
 
+	var preview string
+	panes, _ := tmux.SessionPanes(session)
+	preview, _ = tmux.CapturePane(panes[0], m.preview.Width)
+
+	if !m.zoomed {
+		windows, err := tmux.SessionWindows(session)
+		if err != nil {
+			return err.Error()
+		}
+		layout, err := tmuxui.New(windows[0])
+		if err != nil {
+			return err.Error()
+		}
+
+		colour := m.styles.viewportNormal.GetBorderTopForeground()
+		if m.focused == previewPane {
+			colour = m.styles.viewportFocused.GetBorderTopForeground()
+		}
+
+		layout.Resize(m.preview.Width, m.preview.Height).
+			WithBorderColour(colour)
+		preview = layout.View()
+	}
 	m.preview.SetContent(preview)
 	if m.config.ManageSessionKubeContext && m.context != nil {
 		m.context = m.context.(*panel.Model).UpdateContextList(
@@ -68,8 +90,7 @@ func (m *model) View() string {
 	if m.dialog != nil {
 		dw, _ := m.dialog.(*dialog.Dialog).GetSize()
 		w := m.width/2 - max(dw, config.DialogWidth)/2
-		return helpers.PlaceOverlay(w, 10, m.dialog.View(),
-			doc, false)
+		return helpers.PlaceOverlay(w, 10, m.dialog.View(), doc, false)
 	}
 
 	if m.overlay != nil {

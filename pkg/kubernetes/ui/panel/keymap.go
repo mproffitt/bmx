@@ -49,10 +49,10 @@ func (k *keyMap) FullHelp() [][]key.Binding {
 	// with the panel pager. leaving them out for now
 	return [][]key.Binding{
 		{
-			k.Delete, k.Enter, k.Killpanel, k.Move, k.Space,
+			k.Delete, k.Enter, k.Killpanel, k.Move, k.Space, k.Pageup,
 		},
 		{
-			k.Up, k.Down, k.Left, k.Right, k.Login, k.Pageup, k.Pagedown,
+			k.Up, k.Down, k.Left, k.Right, k.Login, k.Pagedown,
 		},
 	}
 }

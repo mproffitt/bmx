@@ -26,13 +26,14 @@ import (
 )
 
 type keyMap struct {
-	CtrlN    key.Binding
-	Delete   key.Binding
-	Enter    key.Binding
-	Help     key.Binding
-	Quit     key.Binding
-	ShiftTab key.Binding
-	Tab      key.Binding
+	CtrlN      key.Binding
+	Delete     key.Binding
+	Enter      key.Binding
+	Help       key.Binding
+	Quit       key.Binding
+	ShiftTab   key.Binding
+	Tab        key.Binding
+	ToggleZoom key.Binding
 }
 
 func (k *keyMap) ShortHelp() []key.Binding {
@@ -45,7 +46,7 @@ func (k *keyMap) FullHelp() [][]key.Binding {
 			k.CtrlN, k.Delete, k.Enter, k.Help,
 		},
 		{
-			k.Quit, k.ShiftTab, k.Tab,
+			k.Quit, k.ShiftTab, k.Tab, k.ToggleZoom,
 		},
 	}
 }
@@ -66,6 +67,8 @@ func mapKeys() *keyMap {
 			key.WithHelp("⇧ ↹", "Previous pane")),
 		Tab: key.NewBinding(key.WithKeys("tab"),
 			key.WithHelp("↹", "Next pane")),
+		ToggleZoom: key.NewBinding(key.WithKeys("z"),
+			key.WithHelp("z", "Toggle viewport zoom")),
 	}
 }
 

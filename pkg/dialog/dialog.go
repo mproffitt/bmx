@@ -24,8 +24,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
-	"github.com/muesli/reflow/wordwrap"
-	"github.com/muesli/reflow/wrap"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -114,8 +112,7 @@ func NewStanaloneOKDialog(message string, config *config.Config, width int) tea.
 }
 
 func New(message string, cancelOnly bool, c *config.Config, standalone bool, width int) tea.Model {
-	message = wrap.String(wordwrap.String(message, width), width)
-	height := min(DialogHeight, lipgloss.Height(message))
+	height := min(DialogHeight, lipgloss.Height(message)+1)
 	d := Dialog{
 		active:     Cancel,
 		config:     c,

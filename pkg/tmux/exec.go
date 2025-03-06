@@ -26,8 +26,12 @@ import (
 	"strings"
 
 	bmx "github.com/mproffitt/bmx/pkg/exec"
+	"github.com/muesli/reflow/truncate"
 )
 
+// Exec wraps the exec command with `tmux` as the
+// command name. This means you can focus solely on
+// the tmux commands
 func Exec(args []string) (string, string, error) {
 	tmux, err := exec.LookPath("tmux")
 	if err != nil {
@@ -37,11 +41,16 @@ func Exec(args []string) (string, string, error) {
 	return bmx.Exec(tmux, args)
 }
 
+// ExecSilent supresses Standard out and Standard error
+// but returns any error from  the command with
+// stdout, stderr being available as fields in the error
+// response where available
 func ExecSilent(args []string) error {
 	_, _, err := Exec(args)
 	return err
 }
 
+// Get an environment variable from the TMUX env
 func GetTmuxEnvVar(session, name string) string {
 	args := []string{
 		"show-environment", "-t", session, name,
@@ -58,7 +67,12 @@ func GetTmuxEnvVar(session, name string) string {
 	return strings.Join(strings.Split(out, "=")[1:], "=")
 }
 
-func CapturePane(targetPane string) (string, error) {
+// Captures the given pane.
+//
+// If the value of truncateWidth is not equal to 0,
+// this method will attempt to truncate each line to the given width
+// preserving ansi escape sequences where present
+func CapturePane(targetPane string, truncateWidth int) (string, error) {
 	args := []string{
 		"capture-pane", "-ep", "-t", targetPane,
 	}
@@ -66,9 +80,19 @@ func CapturePane(targetPane string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	if truncateWidth > 0 {
+		builder := strings.Builder{}
+		for _, line := range strings.Split(output, "\n") {
+			line = truncate.String(line, uint(truncateWidth))
+			builder.WriteString(line + "\n")
+		}
+		output = builder.String()
+	}
 	return output, nil
 }
 
+// Run the given command in a popup window
 func DisplayPopup(w, h, t, b string, args []string) error {
 	command := []string{
 		"display-popup",
@@ -85,6 +109,7 @@ func DisplayPopup(w, h, t, b string, args []string) error {
 	return err
 }
 
+// Display a menu
 func DisplayMenu(title, border, fg, bg string, args [][]string) error {
 	command := []string{
 		"display-menu",
