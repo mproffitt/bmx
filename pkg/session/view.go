@@ -42,25 +42,21 @@ func (m *model) View() string {
 
 	left := strings.Builder{}
 	{
-		left.WriteString("\n")
-
 		sessionlist := m.list.View()
-		left.WriteString(m.styles.sessionlist.Render(sessionlist) + "\n")
+		left.WriteString(m.styles.sessionlist.MarginTop(1).Render(sessionlist))
 	}
 
 	right := strings.Builder{}
 	{
-		right.WriteString("\n")
 		switch m.focused {
 		case sessionList, contextPane, overlay:
 			right.WriteString(m.styles.viewportNormal.Render(m.preview.View()))
 		case previewPane:
 			right.WriteString(m.styles.viewportFocused.Render(m.preview.View()))
 		}
-		right.WriteString("\n")
 
 		if m.config.ManageSessionKubeContext && m.context != nil {
-			right.WriteString(m.context.View())
+			right.WriteString("\n" + m.context.View())
 		}
 	}
 

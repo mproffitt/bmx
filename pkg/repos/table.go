@@ -232,7 +232,12 @@ func (m *Model) View() string {
 		title := m.styles.title.Render("Create new session\n")
 		body.WriteString(title)
 	}
-	tviewport := viewport.New(m.width-4, m.height-8)
+
+	subtract := 6
+	if m.isOverlay {
+		subtract = 8
+	}
+	tviewport := viewport.New(m.width-4, m.height-subtract)
 	tviewport.SetContent(m.table.View())
 	content := m.styles.viewport.Padding(0, 0, 1, 2).Render(tviewport.View())
 	body.WriteString(content + "\n")
@@ -283,11 +288,10 @@ func (m *Model) drawTable() {
 		return
 	}
 
-	subtract := 5
+	subtract := 7
 	if m.isOverlay {
-		subtract = 6
+		subtract = 9
 	}
-
 	maxName, maxOwner, maxUrl := 0, 0, 0
 	for _, row := range m.rows {
 		nameLen := len(row.Data[columnKeyName].(string))

@@ -39,6 +39,7 @@ import (
 
 const (
 	listWidth               = 26
+	padding                 = 2
 	previewWidth            = 80
 	previewHeight           = 30
 	paddingMultiplier       = 5
@@ -97,7 +98,7 @@ func New(c *config.Config) *model {
 		list:    list.New(items, list.NewDefaultDelegate(), 0, 0),
 		preview: viewport.New(0, 0),
 		styles: styles{
-			sessionlist: lipgloss.NewStyle().Margin(1, 2).Width(listWidth),
+			sessionlist: lipgloss.NewStyle().MarginRight(1),
 			viewportNormal: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
 				BorderForeground(lipgloss.Color(c.Style.BorderFgColor)).
@@ -199,17 +200,24 @@ func (m *model) setItems() {
 // in order to better lay-out the frame and not have to
 // disable if the term size is too small
 func (m *model) resize() {
-	if m.width < config.MinWidth || m.height < config.MinHeight {
-		return
-	}
-	l, v := m.styles.sessionlist.GetFrameSize()
-	m.list.SetSize(listWidth, m.height-(paddingMultiplier*v))
-	w, _ := m.styles.viewportNormal.GetFrameSize()
-	m.preview.Width = (m.width - listWidth) - (w + l*2) + 1 // (paddingMultiplier * w / 2)
-	m.preview.Height = (m.height - 2)
+	width := min(listWidth, int(float64(m.width)*.25))
+	height := (m.height - padding)
+	m.list.SetSize(width, (m.height - padding))
+	m.preview.Width = (m.width - width) - (2 * padding)
+	m.preview.Height = height
+
 	if m.config.ManageSessionKubeContext {
-		sessionHeight := int(math.Ceil(float64(m.height) * kubernetesSessionHeight))
+		// look for 40% of the screen space
+		sessionHeight := int(math.Ceil(float64(height) * kubernetesSessionHeight))
+
+		// title + pager + rows + padding + border
+		minheight := 2 + 2 + 4 + (padding * 2) + 0
+		sessionHeight = max(minheight, sessionHeight)
+
+		// subtract from that required elements
 		sessionHeight -= (panel.PanelTitle + panel.PanelFooter)
+
+		// calculate how many rows and cols we can use
 		rows, cols, colWidth := 0, 0, 0
 		{
 			cols = int(math.Floor(float64(m.preview.Width-2) / float64(panel.KubernetesListWidth)))
@@ -221,7 +229,7 @@ func (m *model) resize() {
 			session := m.list.SelectedItem().(list.DefaultItem).Title()
 			m.context = panel.NewKubectxPane(m.config, session, rows, cols, colWidth)
 		}
-		m.preview.Height = (m.height - 3) - sessionHeight - 1
+		m.preview.Height = m.preview.Height - sessionHeight - 2
 		m.context = m.context.(*panel.Model).SetSize(m.preview.Width-4, sessionHeight, colWidth)
 	}
 }

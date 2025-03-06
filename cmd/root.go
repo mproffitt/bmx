@@ -76,20 +76,6 @@ func init() {
 }
 
 func run(m tea.Model) {
-	can, w, h, err := canDrawOnTerminal()
-	if err != nil {
-		fmt.Fprint(os.Stderr, err.Error())
-		os.Exit(1)
-	}
-	if !can && noPopup {
-		fmt.Fprintf(os.Stderr,
-			"Unable to draw screen. Resize window to at least %d x %d\n"+
-				"current screen size %d x %d\n",
-			config.MinWidth, config.MinHeight, w, h,
-		)
-		// fatal error + sigwinch
-		os.Exit(128 + 28)
-	}
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error running program:\n%s\n", err.Error())

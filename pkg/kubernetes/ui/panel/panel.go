@@ -36,6 +36,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/optionlist"
 	"github.com/mproffitt/bmx/pkg/tmux"
+	"github.com/muesli/reflow/truncate"
 )
 
 const (
@@ -396,6 +397,7 @@ func (k *Model) SetSize(width, height, columnWidth int) tea.Model {
 func (k *Model) View() string {
 	cols := k.createPaginatedColumns()
 	titlestring := "Kubernetes Contexts : " + k.kubeconfig
+	titlestring = truncate.String(titlestring, uint(k.width))
 	title := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(k.config.Style.Title)).Align(lipgloss.Left).
 		Render(titlestring)
