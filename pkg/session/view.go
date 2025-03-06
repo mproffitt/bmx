@@ -33,60 +33,42 @@ import (
 )
 
 func (m *model) View() string {
-	current := m.list.SelectedItem()
-	if current == nil {
-		current = m.list.Items()[0]
-	}
-	session := current.(list.DefaultItem).Title()
-
-	var preview string
-	panes, _ := tmux.SessionPanes(session)
-	preview, _ = tmux.CapturePane(panes[0], m.preview.Width)
-
-	if !m.zoomed {
-		windows, err := tmux.SessionWindows(session)
-		if err != nil {
-			return err.Error()
-		}
-		layout, err := tmuxui.New(windows[0])
-		if err != nil {
-			return err.Error()
-		}
-
-		colour := m.styles.viewportNormal.GetBorderTopForeground()
-		if m.focused == previewPane {
-			colour = m.styles.viewportFocused.GetBorderTopForeground()
-		}
-
-		layout.Resize(m.preview.Width, m.preview.Height).
-			WithBorderColour(colour)
-		preview = layout.View()
-	}
-	m.preview.SetContent(preview)
+	session := m.getSession()
+	m.makePreview(session)
 	if m.config.ManageSessionKubeContext && m.context != nil {
 		m.context = m.context.(*panel.Model).UpdateContextList(
 			session, m.getSessionKubeconfig(session))
 	}
+
 	left := strings.Builder{}
-	left.WriteString("\n")
-	left.WriteString(m.styles.sessionlist.Render(m.list.View()) + "\n")
+	{
+		left.WriteString("\n")
+
+		sessionlist := m.list.View()
+		left.WriteString(m.styles.sessionlist.Render(sessionlist) + "\n")
+	}
 
 	right := strings.Builder{}
-	right.WriteString("\n")
-	switch m.focused {
-	case sessionList, contextPane, overlay:
-		right.WriteString(m.styles.viewportNormal.Render(m.preview.View()))
-	case previewPane:
-		right.WriteString(m.styles.viewportFocused.Render(m.preview.View()))
-	}
-	right.WriteString("\n")
+	{
+		right.WriteString("\n")
+		switch m.focused {
+		case sessionList, contextPane, overlay:
+			right.WriteString(m.styles.viewportNormal.Render(m.preview.View()))
+		case previewPane:
+			right.WriteString(m.styles.viewportFocused.Render(m.preview.View()))
+		}
+		right.WriteString("\n")
 
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		right.WriteString(m.context.View())
+		if m.config.ManageSessionKubeContext && m.context != nil {
+			right.WriteString(m.context.View())
+		}
 	}
 
 	doc := lipgloss.JoinHorizontal(lipgloss.Top, left.String(), right.String())
+	return m.viewOverlays(doc)
+}
 
+func (m *model) viewOverlays(doc string) string {
 	if m.dialog != nil {
 		dw, _ := m.dialog.(*dialog.Dialog).GetSize()
 		w := m.width/2 - max(dw, config.DialogWidth)/2
@@ -103,4 +85,43 @@ func (m *model) View() string {
 	}
 
 	return doc
+}
+
+func (m *model) getSession() string {
+	current := m.list.SelectedItem()
+	if current == nil {
+		current = m.list.Items()[0]
+	}
+	return current.(list.DefaultItem).Title()
+}
+
+func (m *model) makePreview(session string) {
+	var preview string
+	panes, _ := tmux.SessionPanes(session)
+	preview, _ = tmux.CapturePane(panes[0], m.preview.Width)
+
+	if !m.zoomed {
+		preview = m.makeZoomedOut(session)
+	}
+	m.preview.SetContent(preview)
+}
+
+func (m *model) makeZoomedOut(session string) string {
+	windows, err := tmux.SessionWindows(session)
+	if err != nil {
+		return err.Error()
+	}
+	layout, err := tmuxui.New(windows[0])
+	if err != nil {
+		return err.Error()
+	}
+
+	colour := m.styles.viewportNormal.GetBorderTopForeground()
+	if m.focused == previewPane {
+		colour = m.styles.viewportFocused.GetBorderTopForeground()
+	}
+
+	layout.Resize(m.preview.Width, m.preview.Height).
+		WithBorderColour(colour)
+	return layout.View()
 }
