@@ -36,6 +36,7 @@ type keyMap struct {
 	Pagedown  key.Binding
 	Right     key.Binding
 	Space     key.Binding
+	ShiftDel  key.Binding
 	Up        key.Binding
 	Login     key.Binding
 }
@@ -52,7 +53,7 @@ func (k *keyMap) FullHelp() [][]key.Binding {
 			k.Delete, k.Enter, k.Killpanel, k.Move, k.Space, k.Pageup,
 		},
 		{
-			k.Up, k.Down, k.Left, k.Right, k.Login, k.Pagedown,
+			k.ShiftDel, k.Up, k.Down, k.Left, k.Right, k.Login, k.Pagedown,
 		},
 	}
 }
@@ -81,6 +82,8 @@ func mapKeys() *keyMap {
 			key.WithHelp("→/l", "move right")),
 		Space: key.NewBinding(key.WithKeys(" "),
 			key.WithHelp("␣", "Change context namespace")),
+		ShiftDel: key.NewBinding(key.WithKeys("X"),
+			key.WithHelp("X", "force delete context")),
 		Up: key.NewBinding(key.WithKeys("up", "k"),
 			key.WithHelp("↑/k", "move up")),
 	}

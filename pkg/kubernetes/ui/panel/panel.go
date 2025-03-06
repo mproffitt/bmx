@@ -53,6 +53,7 @@ type Model struct {
 	context    string
 	error      error
 	focused    bool
+	force      bool
 	height     int
 	items      []kubernetes.KubeContext
 	keymap     *keyMap
@@ -152,6 +153,10 @@ func (k *Model) Overlay() helpers.UseOverlay {
 	}
 
 	if k.todelete != "" {
+		if k.force {
+			k.force = false
+			return nil
+		}
 		builder := strings.Builder{}
 		builder.WriteString("Are you sure you want to delete context\n")
 		builder.WriteString(lipgloss.PlaceHorizontal(config.DialogWidth, lipgloss.Center,
@@ -169,7 +174,7 @@ func (k *Model) Overlay() helpers.UseOverlay {
 }
 
 func (k *Model) RequiresOverlay() bool {
-	return k.options != nil || k.todelete != ""
+	return k.options != nil || (k.todelete != "" && !k.force)
 }
 
 func (k *Model) GetSize() (int, int) {
@@ -246,8 +251,12 @@ func (k *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			// END
 
-		case key.Matches(msg, k.keymap.Delete):
+		case key.Matches(msg, k.keymap.Delete, k.keymap.ShiftDel):
 			k.todelete = k.lists[k.activeList].SelectedItem().(list.DefaultItem).Title()
+			if key.Matches(msg, k.keymap.ShiftDel) {
+				k.force = true
+				return k, kubernetes.ContextDeleteCmd()
+			}
 		case key.Matches(msg, k.keymap.Space):
 			k.context = k.lists[k.activeList].SelectedItem().(list.DefaultItem).Title()
 			k.options = optionlist.NewOptionModel(optionlist.Namespace, k.config, k.context, k.kubeconfig)
@@ -304,6 +313,7 @@ func (k *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case optionlist.ClusterLogin:
 				k.error = kubernetes.TeleportClusterLogin(value)
 				k.reloadContextList()
+				k.setActiveContextPage()
 			}
 		case dialog.Status:
 			switch value {
@@ -385,9 +395,10 @@ func (k *Model) SetSize(width, height, columnWidth int) tea.Model {
 
 func (k *Model) View() string {
 	cols := k.createPaginatedColumns()
+	titlestring := "Kubernetes Contexts : " + k.kubeconfig
 	title := lipgloss.NewStyle().
 		Foreground(lipgloss.Color(k.config.Style.Title)).Align(lipgloss.Left).
-		Render("Kubernetes Contexts : " + k.kubeconfig)
+		Render(titlestring)
 
 	nocontexts := lipgloss.NewStyle().Foreground(lipgloss.Color(k.config.Style.FocusedColor)).
 		Padding(2).
@@ -511,8 +522,9 @@ func (k *Model) reloadContextList() {
 			k.activeList = len(k.lists) - 1
 		}
 		if k.activeItem >= len(k.lists[k.activeList].Items()) {
-			k.activeItem = len(k.lists[k.activeItem].Items()) - 1
+			k.activeItem = len(k.lists[k.activeList].Items()) - 1
 		}
+		k.lists[k.activeList].Select(k.activeItem)
 	}
 }
 
