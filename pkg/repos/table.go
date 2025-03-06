@@ -38,23 +38,23 @@ import (
 )
 
 var customBorder = table.Border{
-	Top:    "─",
-	Left:   "│",
-	Right:  "│",
-	Bottom: "─",
+	Top:    "",
+	Left:   "",
+	Right:  "",
+	Bottom: "",
 
-	TopRight:    "╮",
-	TopLeft:     "╭",
-	BottomRight: "╯",
-	BottomLeft:  "╰",
+	TopRight:    "",
+	TopLeft:     "",
+	BottomRight: "",
+	BottomLeft:  "",
 
-	TopJunction:    "╥",
-	LeftJunction:   "├",
-	RightJunction:  "┤",
-	BottomJunction: "╨",
-	InnerJunction:  "╫",
+	TopJunction:    "",
+	LeftJunction:   "",
+	RightJunction:  "",
+	BottomJunction: "",
 
-	InnerDivider: "║",
+	InnerJunction: "",
+	InnerDivider:  "",
 }
 
 const (
@@ -229,10 +229,13 @@ func (m *Model) View() string {
 
 	body := strings.Builder{}
 	if m.isOverlay {
-		title := m.styles.title.Render("Create new session")
-		body.WriteString(title + "\n")
+		title := m.styles.title.Render("Create new session\n")
+		body.WriteString(title)
 	}
-	body.WriteString(m.table.View() + "\n")
+	tviewport := viewport.New(m.width-4, m.height-8)
+	tviewport.SetContent(m.table.View())
+	content := m.styles.viewport.Padding(0, 0, 1, 2).Render(tviewport.View())
+	body.WriteString(content + "\n")
 
 	filter := m.styles.filter.Width(m.width - 2).Render(m.filterInput.View())
 	body.WriteString(filter)
@@ -280,6 +283,11 @@ func (m *Model) drawTable() {
 		return
 	}
 
+	subtract := 5
+	if m.isOverlay {
+		subtract = 6
+	}
+
 	maxName, maxOwner, maxUrl := 0, 0, 0
 	for _, row := range m.rows {
 		nameLen := len(row.Data[columnKeyName].(string))
@@ -293,7 +301,7 @@ func (m *Model) drawTable() {
 			maxOwner = min(maxOwner, maxWidth)
 		}
 		// w := m.styles.table.GetHorizontalFrameSize()
-		maxUrl = m.width - (maxName + maxOwner) - 4
+		maxUrl = m.width - (maxName + maxOwner) - subtract
 	}
 
 	cols := []table.Column{
@@ -302,10 +310,6 @@ func (m *Model) drawTable() {
 		table.NewColumn(columnKeyUrl, "Url", maxUrl).WithFiltered(true),
 	}
 
-	subtract := 5
-	if m.isOverlay {
-		subtract = 6
-	}
 	pageSize := max(20, m.height-subtract)
 	m.table = table.New(cols).
 		Border(customBorder).
@@ -315,6 +319,10 @@ func (m *Model) drawTable() {
 			BorderForeground(lipgloss.Color(m.config.Style.BorderFgColor)).
 			Foreground(lipgloss.Color(m.config.Style.Foreground)).
 			Align(lipgloss.Left),
+		).
+		HighlightStyle(lipgloss.NewStyle().
+			Background(lipgloss.Color(m.config.Style.BorderFgColor)).
+			Foreground(lipgloss.Color(m.config.Style.ListNormalSelectedTitle)),
 		).
 		WithFooterVisibility(false).
 		WithHeaderVisibility(false).
