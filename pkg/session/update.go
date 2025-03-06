@@ -45,7 +45,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd               tea.Cmd
 		cmds              []tea.Cmd
 		err               error
-		sendOVerlayUpdate = true
+		sendOverlayUpdate = true
 	)
 
 	m.session = m.list.SelectedItem().(tmux.Session)
@@ -123,7 +123,6 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.context, cmd = m.context.Update(kubernetes.ContextChangeMsg{})
 				cmds = append(cmds, cmd)
 			case overlay:
-				// skip if the overlay is active
 				break
 			default:
 				if m.dialog == nil {
@@ -158,7 +157,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				cmds = append(cmds, cmd)
 				if m.overlay == nil && m.context.(*panel.Model).RequiresOverlay() {
 					// don't send an update to the overlay on first creation
-					sendOVerlayUpdate = false
+					sendOverlayUpdate = false
 					m.overlay = NewOverlayContainer(&m.context, m.focused)
 					m.focused = overlay
 				}
@@ -178,7 +177,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case contextPane:
 			// Don't resend the messages to context-pane as it leads to duplication
 		case overlay:
-			if !sendOVerlayUpdate {
+			if !sendOverlayUpdate {
 				break
 			}
 			var model tea.Model
@@ -198,7 +197,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 	case dialog.DialogStatusMsg:
-		if m.focused == overlay {
+		updateModel := false
+
+		if m.overlay != nil {
+			switch (*m.overlay.parent).(type) {
+			case *model:
+				updateModel = true
+			}
+		}
+
+		if m.focused == overlay && updateModel {
 			var model tea.Model
 			model, cmd = m.overlay.model.Update(msg)
 			m.overlay.model = model.(helpers.UseOverlay)
