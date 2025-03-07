@@ -32,7 +32,6 @@ import (
 	"github.com/mproffitt/bmx/pkg/dialog"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
-	"github.com/mproffitt/bmx/pkg/kubernetes/ui/panel"
 	"github.com/mproffitt/bmx/pkg/repos"
 	"github.com/mproffitt/bmx/pkg/tmux"
 )
@@ -58,19 +57,20 @@ const (
 )
 
 type model struct {
-	config   *config.Config
-	context  tea.Model
-	deleting bool
-	dialog   tea.Model
-	filter   textinput.Model
-	focused  FocusType
-	height   int
-	keymap   *keyMap
-	lastch   uint
-	list     list.Model
-	overlay  *overlayContainer
-	preview  viewport.Model
-	session  tmux.Session
+	config        *config.Config
+	context       tea.Model
+	contextHidden bool
+	deleting      bool
+	dialog        tea.Model
+	filter        textinput.Model
+	focused       FocusType
+	height        int
+	keymap        *keyMap
+	lastch        uint
+	list          list.Model
+	overlay       *overlayContainer
+	preview       viewport.Model
+	session       tmux.Session
 
 	styles styles
 	width  int
@@ -92,12 +92,13 @@ type delegates struct {
 func New(c *config.Config) *model {
 	items := []list.Item{}
 	m := model{
-		config:  c,
-		filter:  textinput.New(),
-		focused: sessionList,
-		keymap:  mapKeys(),
-		list:    list.New(items, list.NewDefaultDelegate(), 0, 0),
-		preview: viewport.New(0, 0),
+		config:        c,
+		contextHidden: !c.ManageSessionKubeContext,
+		filter:        textinput.New(),
+		focused:       sessionList,
+		keymap:        mapKeys(),
+		list:          list.New(items, list.NewDefaultDelegate(), 0, 0),
+		preview:       viewport.New(0, 0),
 		styles: styles{
 			sessionlist: lipgloss.NewStyle().MarginRight(1),
 			viewportNormal: lipgloss.NewStyle().
@@ -194,44 +195,4 @@ func (m *model) setItems() {
 		items[i] = s
 	}
 	_ = m.list.SetItems(items)
-}
-
-// TODO: There is something in this that prevents
-// the model from resizing correctly on small terminal
-// windows. It would be good to understand what this is
-// in order to better lay-out the frame and not have to
-// disable if the term size is too small
-func (m *model) resize() {
-	width := min(listWidth, int(float64(m.width)*.25))
-	height := (m.height - padding)
-	m.list.SetSize(width, (m.height - padding))
-	m.preview.Width = (m.width - width) - (2 * padding)
-	m.preview.Height = height
-
-	if m.config.ManageSessionKubeContext {
-		// look for 40% of the screen space
-		sessionHeight := int(math.Ceil(float64(height) * kubernetesSessionHeight))
-
-		// title + pager + rows + padding + border
-		minheight := 2 + 2 + 4 + (padding * 2) + 0
-		sessionHeight = max(minheight, sessionHeight)
-
-		// subtract from that required elements
-		sessionHeight -= (panel.PanelTitle + panel.PanelFooter)
-
-		// calculate how many rows and cols we can use
-		rows, cols, colWidth := 0, 0, 0
-		{
-			cols = int(math.Floor(float64(m.preview.Width-2) / float64(panel.KubernetesListWidth)))
-			colWidth = int(math.Floor(float64(m.preview.Width-2) / float64(cols)))
-			rows = int(math.Floor(float64(sessionHeight)/float64(panel.KubernetesRowHeight))) - 1
-		}
-
-		if m.context == nil {
-			session := m.list.SelectedItem().(list.DefaultItem).Title()
-			m.context = panel.NewKubectxPane(m.config, session, rows, cols, colWidth)
-		}
-		m.preview.Height = m.preview.Height - sessionHeight - 2
-		m.context = m.context.(*panel.Model).SetSize(m.preview.Width-4, sessionHeight, colWidth)
-	}
 }

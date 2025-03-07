@@ -150,6 +150,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.focused == previewPane {
 				m.zoomed = !m.zoomed
 			}
+		case key.Matches(msg, m.keymap.HideContext):
+			if m.focused != overlay {
+				m.contextHidden = !m.contextHidden
+				m.resize()
+			}
 		default:
 			switch m.focused {
 			case contextPane:

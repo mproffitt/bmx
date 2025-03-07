@@ -26,14 +26,15 @@ import (
 )
 
 type keyMap struct {
-	CtrlN      key.Binding
-	Delete     key.Binding
-	Enter      key.Binding
-	Help       key.Binding
-	Quit       key.Binding
-	ShiftTab   key.Binding
-	Tab        key.Binding
-	ToggleZoom key.Binding
+	CtrlN       key.Binding
+	Delete      key.Binding
+	Enter       key.Binding
+	Help        key.Binding
+	HideContext key.Binding
+	Quit        key.Binding
+	ShiftTab    key.Binding
+	Tab         key.Binding
+	ToggleZoom  key.Binding
 }
 
 func (k *keyMap) ShortHelp() []key.Binding {
@@ -43,7 +44,7 @@ func (k *keyMap) ShortHelp() []key.Binding {
 func (k *keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
-			k.CtrlN, k.Delete, k.Enter, k.Help,
+			k.CtrlN, k.Delete, k.Enter, k.Help, k.HideContext,
 		},
 		{
 			k.Quit, k.ShiftTab, k.Tab, k.ToggleZoom,
@@ -61,6 +62,9 @@ func mapKeys() *keyMap {
 			key.WithHelp("↩", "Select current item")),
 		Help: key.NewBinding(key.WithKeys("?", "f1"),
 			key.WithHelp("?", "Help")),
+
+		HideContext: key.NewBinding(key.WithKeys("k"),
+			key.WithHelp("k", "Hide context pane")),
 		Quit: key.NewBinding(key.WithKeys("ctrl+c", "esc"),
 			key.WithHelp("esc", "Close overlays or Quit")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"),

@@ -20,6 +20,7 @@
 package session
 
 import (
+	"math"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -55,7 +56,7 @@ func (m *model) View() string {
 			right.WriteString(m.styles.viewportFocused.Render(m.preview.View()))
 		}
 
-		if m.config.ManageSessionKubeContext && m.context != nil {
+		if m.config.ManageSessionKubeContext && m.context != nil && !m.contextHidden {
 			right.WriteString("\n" + m.context.View())
 		}
 	}
@@ -124,4 +125,39 @@ func (m *model) makeZoomedOut(session string) string {
 	layout.Resize(m.preview.Width, m.preview.Height).
 		WithBorderColour(colour)
 	return layout.View()
+}
+
+func (m *model) resize() {
+	width := min(listWidth, int(float64(m.width)*.25))
+	height := (m.height - padding)
+	m.list.SetSize(width, (m.height - padding))
+	m.preview.Width = (m.width - width) - (2 * padding)
+	m.preview.Height = height
+
+	if m.config.ManageSessionKubeContext && !m.contextHidden {
+		// look for 40% of the screen space
+		sessionHeight := int(math.Ceil(float64(height) * kubernetesSessionHeight))
+
+		// title + pager + rows + padding + border
+		minheight := 2 + 2 + 4 + (padding * 2) + 0
+		sessionHeight = max(minheight, sessionHeight)
+
+		// subtract from that required elements
+		sessionHeight -= (panel.PanelTitle + panel.PanelFooter)
+
+		// calculate how many rows and cols we can use
+		rows, cols, colWidth := 0, 0, 0
+		{
+			cols = int(math.Floor(float64(m.preview.Width-2) / float64(panel.KubernetesListWidth)))
+			colWidth = int(math.Floor(float64(m.preview.Width-2) / float64(cols)))
+			rows = int(math.Floor(float64(sessionHeight)/float64(panel.KubernetesRowHeight))) - 1
+		}
+
+		if m.context == nil {
+			session := m.list.SelectedItem().(list.DefaultItem).Title()
+			m.context = panel.NewKubectxPane(m.config, session, rows, cols, colWidth)
+		}
+		m.preview.Height = m.preview.Height - sessionHeight - 2
+		m.context = m.context.(*panel.Model).SetSize(m.preview.Width-4, sessionHeight, colWidth)
+	}
 }
