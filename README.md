@@ -16,6 +16,7 @@ switching and managing contexts inside the current sessions kube-config.
   - Easily set the namespace for any available context
   - Delete individual clusters from the config
   - Move contexts from one kubeconfig to that of another session
+  - Hide the context pane with shift+k
 - Killing the session deletes the associated kubeconfig file
 - Themeable. Starts with colours from `night/storm` from the `tokyo-night` theme
 

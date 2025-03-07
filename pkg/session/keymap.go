@@ -63,8 +63,8 @@ func mapKeys() *keyMap {
 		Help: key.NewBinding(key.WithKeys("?", "f1"),
 			key.WithHelp("?", "Help")),
 
-		HideContext: key.NewBinding(key.WithKeys("k"),
-			key.WithHelp("k", "Hide context pane")),
+		HideContext: key.NewBinding(key.WithKeys("K"),
+			key.WithHelp("K", "Hide context pane")),
 		Quit: key.NewBinding(key.WithKeys("ctrl+c", "esc"),
 			key.WithHelp("esc", "Close overlays or Quit")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"),
