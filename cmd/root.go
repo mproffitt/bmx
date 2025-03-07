@@ -22,13 +22,10 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strconv"
-	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
-	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/spf13/cobra"
 )
 
@@ -81,23 +78,4 @@ func run(m tea.Model) {
 		fmt.Fprintf(os.Stderr, "Error running program:\n%s\n", err.Error())
 		os.Exit(1)
 	}
-}
-
-func canDrawOnTerminal() (bool, int, int, error) {
-	// If we're in a popup, TMUX_PANE isn't set
-	if os.Getenv("TMUX_PANE") == "" {
-		return true, 0, 0, nil
-	}
-	out, _, err := tmux.Exec([]string{
-		"display", "-p", "#{pane_width},#{pane_height}",
-	})
-	if err != nil {
-		return false, 0, 0, err
-	}
-	size := strings.Split(out, ",")
-	w, _ := strconv.Atoi(size[0])
-	h, _ := strconv.Atoi(size[1])
-	x := w > config.MinWidth
-	y := h > config.MinHeight
-	return (x && y), w, h, nil
 }
