@@ -161,6 +161,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.overlay = NewOverlayContainer(&m.context, m.focused)
 					m.focused = overlay
 				}
+			case previewPane:
+				key := msg.String()
+				if len(key) == 1 && key[0] >= '0' && key[0] <= '9' {
+					m.lastch = (uint(key[0]-'0') + 9) % 10
+				}
 			}
 		}
 

@@ -8,7 +8,8 @@ switching and managing contexts inside the current sessions kube-config.
 
 - Quickly switch between tmux sessions
 - Create new sessions from git repository paths
-- Integrated session preview
+- Integrated, zoomable session preview
+  - zoom in on up to the first 10 panes in a window
 - Built in support for managing kubernetes config files
   - Per session kubeconfig files. Start each new session with a new, empty config
   - Easily set the current kubernetes context for the current session
@@ -265,10 +266,6 @@ export $(tmux show-env KUBECONFIG)
 
 ## Known Issues
 
-- When resizing the window, there is a bug in the resize functionalty that
-  causes the terminal to hang if the screen size drops below `110x30`.
-  For now, resizing is disabled if the window falls below this threshold
-
 If you find a bug, please feel free to raise an issue or pull request
 
 ## Supported platforms
@@ -285,7 +282,6 @@ Windows
 - ~Scroll to view for active context~
 - New session from cluster login (for now, you have to create the session first)
 - ~Return to named session on session destroy~
-- Maybe write some unit tests?
 
 ## Out of scope
 

@@ -66,6 +66,7 @@ type model struct {
 	focused  FocusType
 	height   int
 	keymap   *keyMap
+	lastch   uint
 	list     list.Model
 	overlay  *overlayContainer
 	preview  viewport.Model
@@ -109,7 +110,8 @@ func New(c *config.Config) *model {
 				MarginRight(1),
 			delegates: delegates{},
 		},
-		zoomed: true,
+		lastch: 0,
+		zoomed: false,
 	}
 
 	m.styles.delegates.normal = m.createListNormalDelegate()

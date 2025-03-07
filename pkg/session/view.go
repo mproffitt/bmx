@@ -34,7 +34,7 @@ import (
 
 func (m *model) View() string {
 	session := m.getSession()
-	m.makePreview(session)
+	m.makePreview(session, m.lastch)
 	if m.config.ManageSessionKubeContext && m.context != nil {
 		m.context = m.context.(*panel.Model).UpdateContextList(
 			session, m.getSessionKubeconfig(session))
@@ -91,10 +91,14 @@ func (m *model) getSession() string {
 	return current.(list.DefaultItem).Title()
 }
 
-func (m *model) makePreview(session string) {
+func (m *model) makePreview(session string, pane uint) {
 	var preview string
+
 	panes, _ := tmux.SessionPanes(session)
-	preview, _ = tmux.CapturePane(panes[0], m.preview.Width)
+	if pane >= uint(len(panes)) {
+		return
+	}
+	preview, _ = tmux.CapturePane(panes[pane], m.preview.Width)
 
 	if !m.zoomed {
 		preview = m.makeZoomedOut(session)
