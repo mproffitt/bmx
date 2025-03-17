@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mproffitt/bmx/pkg/dialog"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/spf13/cobra"
@@ -42,7 +42,7 @@ var killCmd = &cobra.Command{
 		}
 
 		if !noPopup {
-			err := tmux.DisplayPopup("28", "8", "", tmsConfig.Style.BorderFgColor, []string{
+			err := tmux.DisplayPopup("28", "8", "", tmsConfig.Colours().Black.Dark, []string{
 				tmuxExec, "kill", "--no-popup",
 			})
 			if err != nil {

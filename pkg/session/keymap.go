@@ -22,11 +22,12 @@ package session
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/mproffitt/bmx/pkg/dialog"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
 )
 
 type keyMap struct {
 	CtrlN       key.Binding
+	CtrlS       key.Binding
 	Delete      key.Binding
 	Enter       key.Binding
 	Help        key.Binding
@@ -35,6 +36,9 @@ type keyMap struct {
 	ShiftTab    key.Binding
 	Tab         key.Binding
 	ToggleZoom  key.Binding
+	WindowMode  key.Binding
+	SessionMode key.Binding
+	Rename      key.Binding
 }
 
 func (k *keyMap) ShortHelp() []key.Binding {
@@ -44,10 +48,10 @@ func (k *keyMap) ShortHelp() []key.Binding {
 func (k *keyMap) FullHelp() [][]key.Binding {
 	return [][]key.Binding{
 		{
-			k.CtrlN, k.Delete, k.Enter, k.Help, k.HideContext,
+			k.CtrlN, k.CtrlS, k.Delete, k.Enter, k.Help, k.HideContext, k.SessionMode,
 		},
 		{
-			k.Quit, k.ShiftTab, k.Tab, k.ToggleZoom,
+			k.Quit, k.ShiftTab, k.Tab, k.ToggleZoom, k.WindowMode, k.Rename,
 		},
 	}
 }
@@ -56,6 +60,8 @@ func mapKeys() *keyMap {
 	return &keyMap{
 		CtrlN: key.NewBinding(key.WithKeys("ctrl+n"),
 			key.WithHelp("ctrl+n", "Create new session")),
+		CtrlS: key.NewBinding(key.WithKeys("ctrl+s"),
+			key.WithHelp("ctrl+s", "Save session layout")),
 		Delete: key.NewBinding(key.WithKeys("delete", "x"),
 			key.WithHelp("del/x", "Delete current item")),
 		Enter: key.NewBinding(key.WithKeys("enter"),
@@ -67,12 +73,18 @@ func mapKeys() *keyMap {
 			key.WithHelp("K", "Hide context pane")),
 		Quit: key.NewBinding(key.WithKeys("ctrl+c", "esc"),
 			key.WithHelp("esc", "Close overlays or Quit")),
+		Rename: key.NewBinding(key.WithKeys("r"),
+			key.WithHelp("r", "rename window/session")),
+		SessionMode: key.NewBinding(key.WithKeys("s"),
+			key.WithHelp("s", "Session manager")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"),
 			key.WithHelp("⇧ ↹", "Previous pane")),
 		Tab: key.NewBinding(key.WithKeys("tab"),
 			key.WithHelp("↹", "Next pane")),
 		ToggleZoom: key.NewBinding(key.WithKeys("z"),
 			key.WithHelp("z", "Toggle viewport zoom")),
+		WindowMode: key.NewBinding(key.WithKeys("w"),
+			key.WithHelp("w", "Window manager")),
 	}
 }
 

@@ -26,21 +26,11 @@ import (
 	"github.com/evertras/bubble-table/table"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
-	"github.com/mproffitt/bmx/pkg/kubernetes"
-	"github.com/mproffitt/bmx/pkg/tmux"
 )
 
 const (
 	columnKeyName = "name"
 	defaultWidth  = 20
-)
-
-type OptionType int
-
-const (
-	Namespace OptionType = iota
-	Session
-	ClusterLogin
 )
 
 var customBorder = table.Border{
@@ -66,16 +56,13 @@ var customBorder = table.Border{
 type OptionModel struct {
 	cols        []table.Column
 	config      *config.Config
-	context     string
-	error       error
-	filename    string
 	filterInput textinput.Model
 	height      int
-	optionType  OptionType
 	rows        []table.Row
 	selected    string
 	styles      optionStyles
 	table       table.Model
+	title       string
 	width       int
 }
 
@@ -85,72 +72,64 @@ type optionStyles struct {
 	table   lipgloss.Style
 }
 
-func getRowData(optionType OptionType, context, filename string) (int, []table.Row, error) {
-	var (
-		options []string
-		err     error
-		maxName int
-		rows    []table.Row
-	)
-	switch optionType {
-	case Namespace:
-		ctx := kubernetes.GetFullName(context, filename)
-		options, err = kubernetes.GetNamespaces(ctx, filename)
-
-	case Session:
-		sessions := tmux.ListSessions()
-		options = make([]string, len(sessions))
-		for i, v := range sessions {
-			options[i] = v.Name
-		}
-	case ClusterLogin:
-		options, err = kubernetes.TeleportClusterList()
+type (
+	Iterator func(yield func(int, Row) bool)
+	Options  interface {
+		Title() string
+		Options() Iterator
 	}
-
-	for _, name := range options {
-		rows = append(rows, table.NewRow(table.RowData{columnKeyName: name}))
-		if len(name) > maxName {
-			maxName = len(name)
-		}
+	Row interface {
+		GetValue() string
 	}
-	return maxName, rows, err
+)
+
+type Option struct {
+	Value string
 }
 
-func NewOptionModel(optionType OptionType, config *config.Config, context, filename string) *OptionModel {
-	maxName, rows, err := getRowData(optionType, context, filename)
-	maxName = max(maxName, defaultWidth)
-	n := OptionModel{
-		cols: []table.Column{
-			table.NewColumn(columnKeyName, "", maxName).
-				WithFiltered(true),
-		},
+func (o Option) GetValue() string {
+	return o.Value
+}
 
+func NewOptionModel[T Options](options T, config *config.Config) *OptionModel {
+	n := OptionModel{
 		config:      config,
-		context:     context,
-		error:       err,
-		filename:    filename,
 		filterInput: textinput.New(),
-		optionType:  optionType,
-		rows:        rows,
+		rows:        make([]table.Row, 0),
 		styles: optionStyles{
 			overlay: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(lipgloss.Color(config.Style.DialogBorderColor)).
+				BorderForeground(config.Colours().Black).
 				Padding(0, 1),
 			filter: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(lipgloss.Color(config.Style.FilterBorder)).
-				Width(maxName),
+				BorderForeground(config.Colours().Green),
 			table: lipgloss.NewStyle().
 				Align(lipgloss.Left).
-				BorderForeground(lipgloss.Color(config.Style.BorderFgColor)).
-				Foreground(lipgloss.Color(config.Style.ContextListNormalTitle)).
+				BorderForeground(config.Colours().Black).
+				Foreground(config.Colours().BrightBlue).
 				Margin(1).
 				Padding(0, 2),
 		},
+		title: options.Title(),
 	}
 
 	n.filterInput.TextStyle = n.filterInput.TextStyle.UnsetMargins()
+
+	maxLen := 0
+	for _, v := range options.Options() {
+		n.rows = append(n.rows, table.NewRow(table.RowData{columnKeyName: v.GetValue()}))
+		if len(v.GetValue()) > maxLen {
+			maxLen = len(v.GetValue())
+		}
+	}
+
+	n.cols = []table.Column{
+		table.NewColumn(columnKeyName, "", maxLen).
+			WithFiltered(true),
+	}
+
+	n.styles.filter = n.styles.filter.Width(maxLen)
 
 	n.table = table.New(n.cols).
 		Border(customBorder).
@@ -179,10 +158,6 @@ func (n *OptionModel) Overlay() helpers.UseOverlay {
 		return n
 	}
 	return nil
-}
-
-func (n *OptionModel) GetOptionType() OptionType {
-	return n.optionType
 }
 
 func (n *OptionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -220,19 +195,10 @@ func (n *OptionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (n *OptionModel) View() string {
-	var titleContent string
-	switch n.optionType {
-	case Namespace:
-		titleContent = "Namespaces"
-	case Session:
-		titleContent = "Sessions"
-	case ClusterLogin:
-		titleContent = "Clusters"
-	}
 	title := lipgloss.NewStyle().Padding(0, 2).
 		Border(lipgloss.RoundedBorder(), false, false, true, false).
-		Foreground(lipgloss.Color(n.config.Style.Title)).Align(lipgloss.Center).
-		Render(titleContent)
+		Foreground(n.config.Colours().Yellow).Align(lipgloss.Center).
+		Render(n.title)
 
 	filter := n.styles.filter.Render(n.filterInput.View())
 	body := lipgloss.JoinVertical(lipgloss.Center, title, n.table.View(), filter)

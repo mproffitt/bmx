@@ -17,7 +17,7 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package ui
+package window
 
 import (
 	"errors"
@@ -42,31 +42,17 @@ var paneRegex = regexp.MustCompile(`(\d+)x(\d+),(\d+),(\d+)(?:,(\d+))?`)
 
 type Layout struct {
 	checksum  string
-	root      *Node
+	Root      *Node
 	bordercol lipgloss.TerminalColor
-}
-
-func (l *Layout) View() string {
-	return l.root.
-		WithBorderColour(l.bordercol).
-		View(0, false)
-}
-
-func (l *Layout) Resize(w, h int) *Layout {
-	l.root.Resize(w, h, l.root.Width, l.root.Height)
-	return l
-}
-
-func (l *Layout) WithBorderColour(c lipgloss.TerminalColor) *Layout {
-	l.bordercol = c
-	return l
+	Layout    string
+	Commands  []string
 }
 
 // Get the panel layout of a given window
 //
 // This method calls out to `display-message` to get the panel
 // layout for the window, then converts that into a node tree
-func New(window string) (*Layout, error) {
+func NewLayout(window string) (*Layout, error) {
 	layoutStr, _, err := tmux.Exec([]string{
 		"display-message", "-p", "-t", window, "#{window_layout}",
 	})
@@ -74,28 +60,39 @@ func New(window string) (*Layout, error) {
 		return nil, fmt.Errorf("%w %q", err, layoutStr)
 	}
 
-	l := Layout{}
-	return l.layout(layoutStr)
+	l := Layout{
+		Layout: layoutStr,
+	}
+	_, err = l.layout(layoutStr)
+	if err != nil {
+		return nil, err
+	}
+	return l.findCommandStrings()
 }
 
-// Convert the entire session into a series of layout node trees
-func NewSessionLayout(session string) ([]*Layout, error) {
-	windows := make([]*Layout, 0)
-	out, _, err := tmux.Exec([]string{
-		"list-windows", "-t", session, "-F", "#S.#I",
-	})
-	if err == nil {
-		return windows, err
-	}
+// View all nested windows laid out as individual viewport windows
+//
+// This will eventually replace all the individual window views
+// in `pkg/session`
+func (l *Layout) View() string {
+	return l.Root.
+		WithBorderColour(l.bordercol).
+		View(0, false)
+}
 
-	for _, session := range strings.Split(out, "\n") {
-		window, err := New(session)
-		if err != nil {
-			return windows, err
-		}
-		windows = append(windows, window)
-	}
-	return windows, err
+// Resize all panes in the current window
+//
+// Note. This is for display. It does not resize
+// the actual TMUX panes
+func (l *Layout) Resize(w, h int) *Layout {
+	l.Root.Resize(w, h, l.Root.Width, l.Root.Height)
+	return l
+}
+
+// Set the border colour to use for display
+func (l *Layout) WithBorderColour(c lipgloss.TerminalColor) *Layout {
+	l.bordercol = c
+	return l
 }
 
 func (l *Layout) layout(layout string) (*Layout, error) {
@@ -113,7 +110,7 @@ func (l *Layout) layout(layout string) (*Layout, error) {
 	if err != nil {
 		return nil, err
 	}
-	l.root = &node
+	l.Root = &node
 	if len(remaining) > 0 {
 		return nil, errors.New("unexpected trailing characters in input")
 	}
@@ -189,4 +186,11 @@ func (l *Layout) parseNode(input string) (Node, string, error) {
 	}
 
 	return node, remaining, nil
+}
+
+func (l *Layout) findCommandStrings() (*Layout, error) {
+	for _, child := range l.Root.Children {
+		l.Commands = append(l.Commands, child.GetCommands()...)
+	}
+	return l, nil
 }

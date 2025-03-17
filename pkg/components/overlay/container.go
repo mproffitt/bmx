@@ -17,31 +17,33 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package session
+package overlay
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mproffitt/bmx/pkg/helpers"
 )
 
-type overlayContainer struct {
-	model    helpers.UseOverlay
-	parent   *tea.Model
-	previous FocusType
+type FocusType int
+
+type Container struct {
+	Model    helpers.UseOverlay
+	Parent   *tea.Model
+	Previous FocusType
 }
 
-func (o *overlayContainer) View() string {
-	if m, ok := o.model.(tea.Model); ok {
+func (o *Container) View() string {
+	if m, ok := o.Model.(tea.Model); ok {
 		return m.View()
 	}
 	return ""
 }
 
-func NewOverlayContainer(parent *tea.Model, previous FocusType) *overlayContainer {
-	o := overlayContainer{
-		parent:   parent,
-		model:    (*parent).(helpers.UseOverlay).Overlay(),
-		previous: previous,
+func New(parent *tea.Model, previous FocusType) *Container {
+	o := Container{
+		Model:    (*parent).(helpers.UseOverlay).Overlay(),
+		Parent:   parent,
+		Previous: previous,
 	}
 	return &o
 }

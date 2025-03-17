@@ -22,14 +22,14 @@ package panel
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/mproffitt/bmx/pkg/dialog"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
 )
 
 type keyMap struct {
 	Delete    key.Binding
 	Down      key.Binding
 	Enter     key.Binding
-	Killpanel key.Binding
+	KillPanel key.Binding
 	Left      key.Binding
 	Move      key.Binding
 	Pageup    key.Binding
@@ -42,7 +42,7 @@ type keyMap struct {
 }
 
 func (k *keyMap) ShortHelp() []key.Binding {
-	return []key.Binding{k.Delete, k.Killpanel}
+	return []key.Binding{k.Delete, k.KillPanel}
 }
 
 func (k *keyMap) FullHelp() [][]key.Binding {
@@ -50,7 +50,7 @@ func (k *keyMap) FullHelp() [][]key.Binding {
 	// with the panel pager. leaving them out for now
 	return [][]key.Binding{
 		{
-			k.Delete, k.Enter, k.Killpanel, k.Move, k.Space, k.Pageup,
+			k.Delete, k.Enter, k.KillPanel, k.Move, k.Space, k.Pageup,
 		},
 		{
 			k.ShiftDel, k.Up, k.Down, k.Left, k.Right, k.Login, k.Pagedown,
@@ -66,7 +66,7 @@ func mapKeys() *keyMap {
 			key.WithHelp("↓/j", "move down")),
 		Enter: key.NewBinding(key.WithKeys("enter"),
 			key.WithHelp("↩", "Set current context")),
-		Killpanel: key.NewBinding(key.WithKeys("ctrl+c", "esc"),
+		KillPanel: key.NewBinding(key.WithKeys("ctrl+c", "esc"),
 			key.WithHelp("esc", "Close overlays or quit")),
 		Left: key.NewBinding(key.WithKeys("left", "h"),
 			key.WithHelp("←/h", "move left")),

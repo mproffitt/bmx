@@ -20,15 +20,23 @@
 package session
 
 import (
-	"github.com/mproffitt/bmx/pkg/components/dialog"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mproffitt/bmx/pkg/helpers"
 )
 
-func (m *model) displayHelp() {
-	entries := make([]dialog.HelpEntry, 0)
-	entries = append(entries, m.Help())
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		entries = append(entries, m.context.(dialog.UseHelp).Help())
+func (m *model) save() tea.Cmd {
+	sessions := unpackArray(m.manager.Items())
+	err := m.config.SetSessions(sessions)
+	if err != nil {
+		return helpers.NewErrorCmd(err)
 	}
+	return nil
+}
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+func unpackArray[S ~[]E, E any](s S) []any {
+	r := make([]any, len(s))
+	for i, e := range s {
+		r[i] = e
+	}
+	return r
 }

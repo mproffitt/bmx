@@ -1,0 +1,116 @@
+// Copyright (c) 2025 Martin Proffitt <mprooffitt@choclab.net>
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy of
+// this software and associated documentation files (the "Software"), to deal in
+// the Software without restriction, including without limitation the rights to
+// use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+// the Software, and to permit persons to whom the Software is furnished to do so,
+// subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+// FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+// COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+// IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+// CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+package session
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/tmux"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/window"
+)
+
+type Renamable interface {
+	Rename(newname string) error
+}
+
+type Session struct {
+	Attached   bool
+	Created    time.Time
+	Index      uint
+	Group      string // Future
+	Name       string
+	NumWindows int
+	Path       string
+	Windows    []window.Window
+
+	colours    *config.ColourStyles
+	kubeconfig string
+	command    string
+}
+
+// Load a session details and return a new session object
+func New(session string, c *config.ColourStyles) Session {
+	parts := strings.Split(session, ",")
+
+	details := Session{
+		Attached: parts[3] != "0",
+		Name:     parts[0],
+		Group:    parts[4],
+		Path:     parts[5],
+		colours:  c,
+	}
+	count, _ := strconv.Atoi(parts[1])
+	details.NumWindows = count
+
+	t, err := strconv.ParseInt(parts[2], 10, 64)
+	{
+		if err != nil {
+			t = time.Now().Unix()
+		}
+		details.Created = time.Unix(t, 0)
+	}
+	details.Windows = window.ListWindows(details.Name, c)
+	return details
+}
+
+// Attach to the current session
+func (s Session) Attach() error {
+	return tmux.AttachSession(s.Name)
+}
+
+// Get the description of this session
+func (s Session) Description() string {
+	date := s.Created.Format(time.ANSIC)
+	if s.Attached {
+		return fmt.Sprintf("active\n%s", date)
+	}
+	return date
+}
+
+// Filter value for filterable lists
+func (s Session) FilterValue() string { return s.Name }
+
+// Marshal an individual session
+func (s Session) MarshalYAML() (any, error) {
+	raw := struct {
+		Name       string          `yaml:"name"`
+		KubeConfig string          `yaml:"kubeconfig"`
+		Command    string          `yaml:"command,omitempty"`
+		Path       string          `yaml:"path"`
+		Windows    []window.Window `yaml:"windows"`
+	}{
+		Name:       s.Name,
+		KubeConfig: s.kubeconfig,
+		Command:    s.command,
+		Path:       s.Path,
+		Windows:    make([]window.Window, 0),
+	}
+	raw.Windows = append(raw.Windows, s.Windows...)
+	return raw, nil
+}
+
+// Get the session title
+func (s Session) Title() string {
+	return s.Name
+}

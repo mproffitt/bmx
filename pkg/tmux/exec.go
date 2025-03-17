@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
+	"strconv"
 	"strings"
 
 	bmx "github.com/mproffitt/bmx/pkg/exec"
@@ -56,7 +57,6 @@ func GetTmuxEnvVar(session, name string) string {
 		"show-environment", "-t", session, name,
 	}
 	out, _, err := Exec(args)
-	out = strings.TrimSpace(out)
 	if err != nil || out == "unknown variable: "+name {
 		return ""
 	}
@@ -125,4 +125,16 @@ func DisplayMenu(title, border, fg, bg string, args [][]string) error {
 	}
 	err := ExecSilent(command)
 	return err
+}
+
+// Gets the PID of the current pane
+func GetPanePid(paneid string) int32 {
+	out, _, err := Exec([]string{
+		"display-message", "-t", paneid, "-p", "#{pane_pid}",
+	})
+	if err != nil {
+		return -1
+	}
+	pid, _ := strconv.Atoi(out)
+	return int32(pid)
 }

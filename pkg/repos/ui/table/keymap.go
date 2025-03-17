@@ -17,23 +17,25 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package repos
+package table
 
 import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
-	"github.com/mproffitt/bmx/pkg/dialog"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
 )
 
 type keyMap struct {
+	All      key.Binding
 	Down     key.Binding
 	Enter    key.Binding
 	Help     key.Binding
 	Pageup   key.Binding
 	Pagedown key.Binding
 	Quit     key.Binding
+	ShiftTab key.Binding
+	Tab      key.Binding
 	Up       key.Binding
-	All      key.Binding
 }
 
 func (k keyMap) ShortHelp() []key.Binding {
@@ -45,16 +47,17 @@ func (k keyMap) FullHelp() [][]key.Binding {
 	// with the panel pager. leaving them out for now
 	return [][]key.Binding{
 		{
-			k.Enter, k.Quit, k.Help, k.Pagedown,
+			k.Enter, k.Quit, k.Help, k.Pagedown, k.Tab,
 		},
 		{
-			k.Up, k.Down, k.Pageup, k.All,
+			k.Up, k.Down, k.Pageup, k.All, k.ShiftTab,
 		},
 	}
 }
 
 func mapKeys() keyMap {
 	return keyMap{
+		All: key.NewBinding(key.WithKeys("*"), key.WithHelp("*", "filter table")),
 		Down: key.NewBinding(key.WithKeys("down"),
 			key.WithHelp("↓", "Move down")),
 		Enter: key.NewBinding(key.WithKeys("enter"),
@@ -65,11 +68,14 @@ func mapKeys() keyMap {
 			key.WithHelp("pgup", "Previous page")),
 		Pagedown: key.NewBinding(key.WithKeys("pgdown"),
 			key.WithHelp("pgdn", "Next page")),
-		Up: key.NewBinding(key.WithKeys("up"),
-			key.WithHelp("↑", "Move up")),
 		Quit: key.NewBinding(key.WithKeys("esc", "ctrl+c"),
 			key.WithHelp("esc", "Quit")),
-		All: key.NewBinding(key.WithKeys("*"), key.WithHelp("*", "filter table")),
+		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"),
+			key.WithHelp("shift+tab", "previous field")),
+		Tab: key.NewBinding(key.WithKeys("tab"),
+			key.WithHelp("tab", "next field")),
+		Up: key.NewBinding(key.WithKeys("up"),
+			key.WithHelp("↑", "Move up")),
 	}
 }
 

@@ -21,21 +21,18 @@ package panel
 
 import (
 	"math"
-	"os"
 	"strings"
 
-	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/paginator"
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/overlay"
 	"github.com/mproffitt/bmx/pkg/config"
-	"github.com/mproffitt/bmx/pkg/dialog"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
-	"github.com/mproffitt/bmx/pkg/optionlist"
-	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/muesli/reflow/truncate"
 )
 
@@ -52,7 +49,6 @@ type Model struct {
 	cols       int
 	config     *config.Config
 	context    string
-	error      error
 	focused    bool
 	force      bool
 	height     int
@@ -62,6 +58,7 @@ type Model struct {
 	lists      []list.Model
 	listWidth  int
 	options    tea.Model
+	optionType OptionType
 	paginator  *paginator.Model
 	rows       int
 	session    string
@@ -86,7 +83,7 @@ type delegates struct {
 }
 
 func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth int) *Model {
-	k := Model{
+	m := Model{
 		activeItem: 0,
 		activeList: 0,
 		cols:       cols,
@@ -94,9 +91,9 @@ func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth in
 		keymap:     mapKeys(),
 		listWidth:  min(columnWidth, KubernetesListWidth),
 		paginator: &paginator.Model{
-			ActiveDot:    lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "235", Dark: "252"}).Render("•"),
+			ActiveDot:    lipgloss.NewStyle().Foreground(c.Colours().BrightWhite).Render("•"),
 			ArabicFormat: "%d/%d",
-			InactiveDot:  lipgloss.NewStyle().Foreground(lipgloss.AdaptiveColor{Light: "250", Dark: "238"}).Render("•"),
+			InactiveDot:  lipgloss.NewStyle().Foreground(c.Colours().BrightBlack).Render("•"),
 			KeyMap:       paginator.DefaultKeyMap,
 			Page:         0,
 			PerPage:      cols,
@@ -108,14 +105,14 @@ func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth in
 			list:      lipgloss.NewStyle().Margin(1, 0, 0, 0).Width(columnWidth),
 			viewportNormal: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color(c.Style.BorderFgColor)).
+				BorderForeground(c.Colours().Black).
 				AlignHorizontal(lipgloss.Center).
 				AlignVertical(lipgloss.Center).
 				PaddingLeft(2).
 				PaddingRight(2),
 			viewportFocused: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color(c.Style.FocusedColor)).
+				BorderForeground(c.Colours().Blue).
 				AlignHorizontal(lipgloss.Center).
 				AlignVertical(lipgloss.Center).
 				PaddingLeft(2).
@@ -124,38 +121,34 @@ func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth in
 		viewport: viewport.New(0, 0),
 	}
 
-	k.styles.delegates.base = k.createBaseDelegate()
-	k.styles.delegates.active = k.createActiveDelegate()
-	k.styles.delegates.shaded = k.createShadedDelegate()
-	return &k
+	m.styles.delegates.base = m.createBaseDelegate()
+	m.styles.delegates.active = m.createActiveDelegate()
+	m.styles.delegates.shaded = m.createShadedDelegate()
+	return &m
 }
 
-func (k *Model) Blur() tea.Model {
-	k.focused = false
-	return k
+func (m *Model) Blur() tea.Model {
+	m.focused = false
+	return m
 }
 
-func (k *Model) Focus() tea.Model {
-	k.focused = true
-	return k
+func (m *Model) Focus() tea.Model {
+	m.focused = true
+	return m
 }
 
-func (k *Model) GetError() error {
-	return k.error
-}
-
-func (k *Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return nil
 }
 
-func (k *Model) Overlay() helpers.UseOverlay {
-	if k.options != nil {
-		return k.options.(helpers.UseOverlay).Overlay()
+func (m *Model) Overlay() helpers.UseOverlay {
+	if m.options != nil {
+		return m.options.(helpers.UseOverlay).Overlay()
 	}
 
-	if k.todelete != "" {
-		if k.force {
-			k.force = false
+	if m.todelete != "" {
+		if m.force {
+			m.force = false
 			return nil
 		}
 		builder := strings.Builder{}
@@ -163,304 +156,157 @@ func (k *Model) Overlay() helpers.UseOverlay {
 		builder.WriteString(lipgloss.PlaceHorizontal(config.DialogWidth, lipgloss.Center,
 			lipgloss.NewStyle().
 				Bold(true).
-				Foreground(lipgloss.Color(k.config.Style.FocusedColor)).
+				Foreground(m.config.Colours().BrightBlue).
 				Padding(1).
-				Render(k.todelete)))
+				Render(m.todelete)))
 		builder.WriteString("\ndeleting means you will no longer be logged in to this cluster")
-		dialog := dialog.NewConfirmDialog(builder.String(), k.config, config.DialogWidth)
+		dialog := dialog.NewConfirmDialog(builder.String(), m.config, config.DialogWidth)
 		return dialog.(helpers.UseOverlay)
 	}
 
 	return nil
 }
 
-func (k *Model) RequiresOverlay() bool {
-	return k.options != nil || (k.todelete != "" && !k.force)
+func (m *Model) RequiresOverlay() bool {
+	return m.options != nil || (m.todelete != "" && !m.force)
 }
 
-func (k *Model) GetSize() (int, int) {
-	return k.width, k.height
+func (m *Model) GetSize() (int, int) {
+	return m.width, m.height
 }
 
-func (k *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	var (
-		cmd  tea.Cmd
-		cmds []tea.Cmd
-	)
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch {
-		case key.Matches(msg, k.keymap.Killpanel):
-			if k.options != nil {
-				k.options = nil
-			}
-			k.context = ""
-			k.tomove = ""
-		case key.Matches(msg, k.keymap.Left):
-			k.activeItem = k.lists[k.activeList].Cursor()
-			k.activeList = (k.activeList - 1)
-			if k.activeList < 0 {
-				k.activeList = len(k.lists) - 1
-				k.paginator.Page = k.paginator.TotalPages - 1
-			}
-			if k.activeItem > len(k.lists[k.activeList].Items())-1 {
-				k.activeItem = len(k.lists[k.activeList].Items()) - 1
-			}
-		case key.Matches(msg, k.keymap.Right):
-			k.activeItem = k.lists[k.activeList].Cursor()
-			k.activeList = (k.activeList + 1)
-			if k.activeList > len(k.lists)-1 {
-				k.activeList = 0
-				k.paginator.Page = 0
-			}
-
-			if k.activeItem >= len(k.lists[k.activeList].Items())-1 {
-				k.activeItem = len(k.lists[k.activeList].Items()) - 1
-			}
-		case key.Matches(msg, k.keymap.Up):
-			if k.activeItem == 0 && k.activeList == 0 {
-				k.activeList = len(k.lists) - 1
-				k.paginator.Page = k.paginator.TotalPages - 1
-				k.activeItem = len(k.lists[k.activeList].Items()) - 1
-			} else if k.activeItem == 0 {
-				k.activeList -= 1
-				k.activeItem = len(k.lists[k.activeList].Items()) - 1
-			} else {
-				k.activeItem -= 1
-			}
-		case key.Matches(msg, k.keymap.Down):
-			if k.activeList == len(k.lists)-1 && k.activeItem == len(k.lists[k.activeList].Items())-1 {
-				k.activeList = 0
-				k.activeItem = 0
-				k.paginator.Page = 0
-			} else if k.activeItem == len(k.lists[k.activeList].Items())-1 {
-				k.activeList += 1
-				k.activeItem = 0
-			} else {
-				k.activeItem += 1
-			}
-
-			// PAGE Up and Page down
-		case key.Matches(msg, k.keymap.Pageup):
-			k.paginator.PrevPage()
-			k.activeList, _ = k.paginator.GetSliceBounds(len(k.lists))
-			k.activeItem = 0
-		case key.Matches(msg, k.keymap.Pagedown):
-			k.paginator.NextPage()
-			k.activeList, _ = k.paginator.GetSliceBounds(len(k.lists))
-			k.activeItem = 0
-
-			// END
-
-		case key.Matches(msg, k.keymap.Delete, k.keymap.ShiftDel):
-			k.todelete = k.lists[k.activeList].SelectedItem().(list.DefaultItem).Title()
-			if key.Matches(msg, k.keymap.ShiftDel) {
-				k.force = true
-				return k, kubernetes.ContextDeleteCmd()
-			}
-		case key.Matches(msg, k.keymap.Space):
-			k.context = k.lists[k.activeList].SelectedItem().(list.DefaultItem).Title()
-			k.options = optionlist.NewOptionModel(optionlist.Namespace, k.config, k.context, k.kubeconfig)
-		case key.Matches(msg, k.keymap.Move):
-			if k.options != nil {
-				break
-			}
-			k.tomove = k.lists[k.activeList].SelectedItem().(list.DefaultItem).Title()
-			k.options = optionlist.NewOptionModel(optionlist.Session, k.config, k.context, k.kubeconfig)
-		case key.Matches(msg, k.keymap.Login):
-			k.options = optionlist.NewOptionModel(optionlist.ClusterLogin, k.config, k.context, k.kubeconfig)
-		}
-
-		if len(k.lists) > 0 {
-			k.lists[k.activeList].Select((k.activeItem))
-		}
-
-	case kubernetes.ContextChangeMsg:
-		k.error = k.switchContext()
-		k.lists[k.activeList].Select((k.activeItem))
-	case kubernetes.ContextDeleteMsg:
-		if k.todelete != "" {
-			k.error = kubernetes.DeleteContext(k.todelete, k.kubeconfig)
-			k.todelete = ""
-			k.reloadContextList()
-		}
-	case helpers.OverlayMsg:
-		switch value := msg.Message.(type) {
-		case string:
-			optionType := k.options.(*optionlist.OptionModel).GetOptionType()
-			k.options = nil
-			switch optionType {
-			case optionlist.Session:
-				// Get filename from session
-				newconfig, err := kubernetes.CreateConfig(value)
-				if err != nil {
-					k.error = err
-					break
-				}
-				if !tmux.HasSession(value) {
-					home, _ := os.UserHomeDir()
-					err := tmux.CreateSession(value, home, "", true, false)
-					k.error = err
-					cmds = append(cmds, helpers.ReloadSessionsCmd())
-				}
-				k.error = kubernetes.MoveContext(k.tomove, k.kubeconfig, newconfig)
-				k.reloadContextList()
-
-			case optionlist.Namespace:
-				k.error = kubernetes.SetNamespace(k.context, value, k.kubeconfig)
-				k.context = ""
-				k.reloadContextList()
-
-			case optionlist.ClusterLogin:
-				k.error = kubernetes.TeleportClusterLogin(value)
-				k.reloadContextList()
-				k.setActiveContextPage()
-			}
-		case dialog.Status:
-			switch value {
-			case dialog.Confirm:
-				if k.todelete != "" {
-					cmd = kubernetes.ContextDeleteCmd()
-					cmds = append(cmds, cmd)
-				}
-			case dialog.Cancel:
-				if k.todelete != "" {
-					k.todelete = ""
-				}
-			}
-		}
+func (m *Model) UpdateContextList(session, kubeconfig string) tea.Model {
+	if session == m.session {
+		return m
 	}
-	return k, tea.Batch(cmds...)
-}
+	m.session = session
+	m.kubeconfig = kubeconfig
+	m.reloadContextList()
 
-func (k *Model) UpdateContextList(session, kubeconfig string) tea.Model {
-	if session == k.session {
-		return k
-	}
-	k.session = session
-	k.kubeconfig = kubeconfig
-	k.reloadContextList()
-
-	k.activeItem = 0
-	k.activeList = 0
-	k.paginator.Page = 0
-	k.lists = k.createKubeLists()
-	pages := float64(len(k.items)) / float64(k.rows*k.cols)
-	k.paginator.TotalPages = max(1, int(math.Ceil(pages)))
-	if k.paginator.TotalPages > 1 {
-		k.setActiveContextPage()
+	m.activeItem = 0
+	m.activeList = 0
+	m.paginator.Page = 0
+	m.lists = m.createKubeLists()
+	pages := float64(len(m.items)) / float64(m.rows*m.cols)
+	m.paginator.TotalPages = max(1, int(math.Ceil(pages)))
+	if m.paginator.TotalPages > 1 {
+		m.setActiveContextPage()
 	}
 
-	return k
+	return m
 }
 
-func (k *Model) setActiveContextPage() {
-	page := k.paginator.Page
-	for i := 0; i < k.paginator.TotalPages; i++ {
-		k.paginator.Page = i
-		start, end := k.paginator.GetSliceBounds(len(k.lists))
+func (m *Model) setActiveContextPage() {
+	page := m.paginator.Page
+	for i := range m.paginator.TotalPages {
+		m.paginator.Page = i
+		start, end := m.paginator.GetSliceBounds(len(m.lists))
 		for j := start; j < end; j++ {
-			items := k.lists[j].Items()
-			for l := 0; l < len(items); l++ {
+			items := m.lists[j].Items()
+			for l := range len(items) {
 				if items[l].(kubernetes.KubeContext).IsCurrentContext {
-					k.activeItem = l
-					k.activeList = j
-					k.lists[k.activeList].Select((k.activeItem))
+					m.activeItem = l
+					m.activeList = j
+					m.lists[m.activeList].Select((m.activeItem))
 					return
 				}
 			}
 		}
 	}
-	k.paginator.Page = page
+	m.paginator.Page = page
 }
 
-func (k *Model) SetSize(width, height, columnWidth int) tea.Model {
-	k.width = width
-	k.height = height
-	k.listWidth = columnWidth
-	k.viewport.Height = height
-	k.viewport.Width = width
+func (m *Model) SetSize(width, height, columnWidth int) tea.Model {
+	m.width = width
+	m.height = height
+	m.listWidth = columnWidth
+	m.viewport.Height = height
+	m.viewport.Width = width
 
-	if k.rows*KubernetesRowHeight > k.height {
+	if m.rows*KubernetesRowHeight > m.height {
 		// 4 = 2 lines for title, 2 lines for pagination
-		k.rows = (k.height / KubernetesRowHeight) - 4
+		m.rows = (m.height / KubernetesRowHeight) - 4
 	}
 
-	if (k.cols * k.listWidth) > k.width {
-		k.cols = k.width / k.listWidth
-		k.paginator.PerPage = k.cols
+	if (m.cols * m.listWidth) > m.width {
+		m.cols = m.width / m.listWidth
+		m.paginator.PerPage = m.cols
 	}
-	k.reloadContextList()
-	return k
+	m.reloadContextList()
+	return m
 }
 
-func (k *Model) View() string {
-	cols := k.createPaginatedColumns()
-	titlestring := "Kubernetes Contexts : " + k.kubeconfig
-	titlestring = truncate.String(titlestring, uint(k.width))
-	title := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(k.config.Style.Title)).Align(lipgloss.Left).
-		Render(titlestring)
+func (m *Model) View() string {
+	cols := m.createPaginatedColumns()
 
-	nocontexts := lipgloss.NewStyle().Foreground(lipgloss.Color(k.config.Style.FocusedColor)).
+	var title string
+	{
+		titlestring := "Kubernetes Contexts : " + m.kubeconfig
+		titlestring = truncate.String(titlestring, uint(m.width))
+		title = lipgloss.NewStyle().
+			Foreground(m.config.Colours().Yellow).Align(lipgloss.Left).
+			Render(titlestring)
+	}
+
+	paginated := lipgloss.NewStyle().Foreground(m.config.Colours().Blue).
 		Padding(2).
 		Render("No active contexts")
+	paginated = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, paginated)
 
-	paginated := lipgloss.JoinVertical(lipgloss.Center, title, nocontexts)
 	if len(cols) > 0 {
-		pageContents := lipgloss.JoinHorizontal(lipgloss.Top, cols...)
-		paginated = lipgloss.JoinVertical(
-			lipgloss.Left, title,
-			lipgloss.JoinVertical(lipgloss.Center, pageContents, k.paginator.View()))
+		paginated = lipgloss.JoinHorizontal(lipgloss.Top, cols...)
+		paginated = lipgloss.JoinVertical(lipgloss.Center, paginated, m.paginator.View())
 	}
-	k.viewport.SetContent(paginated)
-	style := k.styles.viewportNormal
-	if k.focused {
-		style = k.styles.viewportFocused
+
+	m.viewport.SetContent(paginated)
+	style := m.styles.viewportNormal
+	if m.focused {
+		style = m.styles.viewportFocused
 	}
-	return style.Render(k.viewport.View())
+	doc := style.Render(m.viewport.View())
+	return overlay.PlaceOverlay(2, 0, title, doc, false)
 }
 
-func (k *Model) createActiveDelegate() ItemDelegate {
-	delegate := k.styles.delegates.base
+func (m *Model) createActiveDelegate() ItemDelegate {
+	delegate := m.styles.delegates.base
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(lipgloss.Color(k.config.Style.ContextListActiveTitle))
+		Foreground(m.config.Colours().BrightBlue)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(lipgloss.Color(k.config.Style.ContextListActiveDescription))
+		Foreground(m.config.Colours().BrightWhite)
 	return delegate
 }
 
-func (k *Model) createBaseDelegate() ItemDelegate {
+func (m *Model) createBaseDelegate() ItemDelegate {
 	delegate := NewItemDelegate()
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(k.config.Style.ContextListNormalTitle))
-
+		Foreground(m.config.Colours().Blue)
 	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(k.config.Style.ContextListNormalDescription))
+		Foreground(m.config.Colours().BrightBlack)
+
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
 		UnsetBorderLeft().
 		PaddingLeft(2).
-		Foreground(lipgloss.Color(k.config.Style.ContextListNormalTitle))
+		Foreground(m.config.Colours().Blue)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
 		UnsetBorderLeft().
 		PaddingLeft(2).
-		Foreground(lipgloss.Color(k.config.Style.ContextListNormalDescription))
+		Foreground(m.config.Colours().BrightBlack)
 	return delegate
 }
 
-func (k *Model) createKubeLists() []list.Model {
+func (m *Model) createKubeLists() []list.Model {
 	var (
 		models  = make([]list.Model, 0)
 		current int
 	)
 
-	for i := 0; i < len(k.items); i += k.rows {
+	for i := 0; i < len(m.items); i += m.rows {
 		items := make([]list.Item, 0)
-		for j := i; j < min(i+k.rows, len(k.items)); j++ {
-			items = append(items, k.items[j])
+		for j := i; j < min(i+m.rows, len(m.items)); j++ {
+			items = append(items, m.items[j])
 		}
 
-		l := list.New(items, k.styles.delegates.base, k.listWidth, (k.rows * KubernetesRowHeight))
+		l := list.New(items, m.styles.delegates.base, m.listWidth, (m.rows * KubernetesRowHeight))
 		l.SetShowTitle(false)
 		l.SetShowHelp(false)
 		l.SetShowPagination(false)
@@ -474,66 +320,66 @@ func (k *Model) createKubeLists() []list.Model {
 	return models
 }
 
-func (k *Model) createPaginatedColumns() []string {
+func (m *Model) createPaginatedColumns() []string {
 	var cols []string
 	{
-		start, end := k.paginator.GetSliceBounds(len(k.lists))
-		if k.activeList < start {
-			k.paginator.PrevPage()
-		} else if k.activeList >= end {
-			k.paginator.NextPage()
+		start, end := m.paginator.GetSliceBounds(len(m.lists))
+		if m.activeList < start {
+			m.paginator.PrevPage()
+		} else if m.activeList >= end {
+			m.paginator.NextPage()
 		}
-		start, end = k.paginator.GetSliceBounds(len(k.lists))
+		start, end = m.paginator.GetSliceBounds(len(m.lists))
 
-		for i, item := range k.lists[start:end] {
-			item.SetDelegate(k.styles.delegates.base)
-			if k.focused && (i+start) == k.activeList {
-				item.SetDelegate(k.styles.delegates.active)
+		for i, item := range m.lists[start:end] {
+			item.SetDelegate(m.styles.delegates.base)
+			if m.focused && (i+start) == m.activeList {
+				item.SetDelegate(m.styles.delegates.active)
 			}
-			cols = append(cols, k.styles.list.Render(item.View()))
+			cols = append(cols, m.styles.list.Render(item.View()))
 		}
 	}
 	return cols
 }
 
-func (k *Model) createShadedDelegate() ItemDelegate {
+func (m *Model) createShadedDelegate() ItemDelegate {
 	delegate := NewItemDelegate()
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(k.config.Style.ListShadedTitle))
+		Foreground(m.config.Colours().Black)
 
 	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(k.config.Style.ListShadedDescription))
+		Foreground(m.config.Colours().Black)
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(lipgloss.Color(k.config.Style.ListShadedSelectedTitle))
+		Foreground(m.config.Colours().Black)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(lipgloss.Color(k.config.Style.ListShadedSelectedDescription))
+		Foreground(m.config.Colours().Black)
 	return delegate
 }
 
-func (k *Model) reloadContextList() {
+func (m *Model) reloadContextList() {
 	contexts, err := kubernetes.KubeContextList(
-		k.config.ManageSessionKubeContext, k.kubeconfig)
+		m.config.ManageSessionKubeContext, m.kubeconfig)
 	if err != nil {
 		contexts = make([]kubernetes.KubeContext, 0)
 	}
 
-	k.items = contexts
-	k.lists = k.createKubeLists()
-	if len(k.lists) > 0 {
-		if k.activeList >= len(k.lists) {
-			k.activeList = len(k.lists) - 1
+	m.items = contexts
+	m.lists = m.createKubeLists()
+	if len(m.lists) > 0 {
+		if m.activeList >= len(m.lists) {
+			m.activeList = len(m.lists) - 1
 		}
-		if k.activeItem >= len(k.lists[k.activeList].Items()) {
-			k.activeItem = len(k.lists[k.activeList].Items()) - 1
+		if m.activeItem >= len(m.lists[m.activeList].Items()) {
+			m.activeItem = len(m.lists[m.activeList].Items()) - 1
 		}
-		k.lists[k.activeList].Select(k.activeItem)
+		m.lists[m.activeList].Select(m.activeItem)
 	}
 }
 
-func (k *Model) switchContext() error {
-	context := k.lists[k.activeList].SelectedItem().(kubernetes.KubeContext)
+func (m *Model) switchContext() error {
+	context := m.lists[m.activeList].SelectedItem().(kubernetes.KubeContext)
 	contextName := context.Name
-	err := kubernetes.SetCurrentContext(contextName, k.kubeconfig)
-	k.reloadContextList()
+	err := kubernetes.SetCurrentContext(contextName, m.kubeconfig)
+	m.reloadContextList()
 	return err
 }

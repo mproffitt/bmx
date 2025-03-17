@@ -46,8 +46,8 @@ type HelpEntry struct {
 func HelpDialog(c *config.Config, entries ...HelpEntry) tea.Model {
 	helpWidth := 2 * config.DialogWidth
 	message := lipgloss.NewStyle().
-		Foreground(lipgloss.Color(c.Style.Title)).
-		BorderForeground(lipgloss.Color(c.Style.DialogBorderColor)).
+		Foreground(c.Colours().Yellow).
+		BorderForeground(c.Colours().Black).
 		Border(lipgloss.RoundedBorder(), false, false, true, false).
 		Render("    Help    ")
 	message = lipgloss.PlaceHorizontal(helpWidth, lipgloss.Center, message)
@@ -58,17 +58,17 @@ func HelpDialog(c *config.Config, entries ...HelpEntry) tea.Model {
 		}
 
 		helpmsg := help.New()
-		helpmsg.Styles.FullKey = lipgloss.NewStyle().Foreground(lipgloss.Color(c.Style.ContextListActiveTitle))
-		helpmsg.Styles.FullDesc = lipgloss.NewStyle().Foreground(lipgloss.Color(c.Style.ContextListActiveDescription))
+		helpmsg.Styles.FullKey = lipgloss.NewStyle().Foreground(c.Colours().BrightGreen)
+		helpmsg.Styles.FullDesc = lipgloss.NewStyle().Foreground(c.Colours().BrightCyan)
 		helpmsg.ShowAll = true
 
 		current := lipgloss.NewStyle().
-			Foreground(lipgloss.Color(c.Style.FocusedColor)).
+			Foreground(c.Colours().BrightBlue).
 			MarginTop(1).
 			Render(entry.Title)
 		if entry.Help != "" {
 			current = lipgloss.JoinVertical(lipgloss.Left, current, lipgloss.NewStyle().
-				Foreground(lipgloss.Color(c.Style.ListNormalDescription)).
+				Foreground(c.Colours().White).
 				MarginBottom(1).
 				Render(entry.Help))
 		}

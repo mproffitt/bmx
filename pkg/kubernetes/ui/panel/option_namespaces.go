@@ -17,18 +17,48 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package session
+package panel
 
 import (
-	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/optionlist"
+	"github.com/mproffitt/bmx/pkg/kubernetes"
 )
 
-func (m *model) displayHelp() {
-	entries := make([]dialog.HelpEntry, 0)
-	entries = append(entries, m.Help())
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		entries = append(entries, m.context.(dialog.UseHelp).Help())
-	}
+func (m *Model) getNamespaceList() (optionlist.Options, error) {
+	return newNamespaceList(m.context, m.kubeconfig)
+}
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+type namespaces struct {
+	title      string
+	context    string
+	filename   string
+	namespaces []string
+}
+
+func newNamespaceList(context, filename string) (*namespaces, error) {
+	n := namespaces{
+		title:    "Namespaces",
+		context:  kubernetes.GetFullName(context, filename),
+		filename: filename,
+	}
+	var err error
+	n.namespaces, err = kubernetes.GetNamespaces(n.context, n.filename)
+	return &n, err
+}
+
+func (n *namespaces) Title() string {
+	return n.title
+}
+
+func (n *namespaces) Options() optionlist.Iterator {
+	return func(yield func(key int, val optionlist.Row) bool) {
+		func(yield func(key int, val optionlist.Row) bool) bool {
+			for k, v := range n.namespaces {
+				if !yield(k, optionlist.Option{Value: v}) {
+					return false
+				}
+			}
+			return true
+		}(yield)
+	}
 }

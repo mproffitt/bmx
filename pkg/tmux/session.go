@@ -22,28 +22,28 @@ package tmux
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 )
 
-type (
-	GetBy  int
-	SortBy int
-)
+func ListSessions() []string {
+	sessions, _, err := Exec([]string{
+		"list-sessions", "-F",
+		"#{session_name},#{session_windows},#{session_created},#{session_attached},#{session_group},#{session_path}",
+	})
+	if err != nil {
+		return []string{}
+	}
+	return strings.Split(sessions, "\n")
+}
 
-const (
-	Name SortBy = iota
-	NameReverse
-	Oldest
-	Newest
-)
-
-const (
-	First GetBy = iota
-	Last
-)
+func HasSession(name string) bool {
+	if err := ExecSilent([]string{"has-session", "-t", name}); err != nil {
+		return false
+	}
+	return true
+}
 
 // Attach to the given named session
 func AttachSession(name string) error {
@@ -71,7 +71,7 @@ func CurrentSession() string {
 	if err == nil {
 		return ""
 	}
-	return strings.TrimSpace(name)
+	return name
 }
 
 // Create a session with the given name, path and optionally command.
@@ -103,16 +103,6 @@ func CreateSession(name, path, command string, includeKubeConfig, attach bool) e
 	return nil
 }
 
-// If a given session name exists
-func HasSession(name string) bool {
-	for _, session := range ListSessions() {
-		if session.Name == name {
-			return true
-		}
-	}
-	return false
-}
-
 // Kill the given session
 //
 // Note: This kills the session  by name without checking
@@ -131,72 +121,19 @@ func KillSession(sessionName string) error {
 	return err
 }
 
-// Kills the named session and switches to the alternative
-//
-// If `new` doesn't exist, it switches to the oldest session
-func KillSwitch(old, new string) error {
-	sessions := SortedSessionlist(Oldest)
-	var oldest, realnew string
-	{
-		for _, session := range sessions {
-			if session.Name != old {
-				oldest = session.Name
-			}
-			if session.Name == new {
-				realnew = new
-			}
-		}
-		if realnew == "" {
-			realnew = oldest
-		}
-	}
-	err := AttachSession(realnew)
-	if err != nil {
-		return err
-	}
-	return KillSession(old)
-}
-
-// List all sessions
-//
-// This lists all tmux sessions and returns them in the order
-// returned by tmux
-//
-// If you want a different ordering, you should use
-// SortedSessionlist instead
-func ListSessions() []Session {
-	sessions, _, err := Exec([]string{
-		"list-sessions",
-	})
-	if err != nil {
-		return []Session{}
-	}
-
-	details := make([]Session, 0)
-	for _, session := range strings.Split(sessions, "\n") {
-		if strings.TrimSpace(session) == "" {
-			continue
-		}
-		d := NewSessionFromString(session)
-		details = append(details, d)
-	}
-	return details
-}
-
 // Creates a new session and attaches to it.
 // If the session already exists, it is simply attached.
-func NewSessionOrAttach(in map[string]any, filter string, includeKubeConfig bool) error {
+func NewSessionOrAttach(in map[string]any, includeKubeConfig bool) error {
 	var (
-		repo, owner, path string
+		name, owner, path string
 		command           string
 		ok                bool
 	)
-	if repo, ok = in["name"].(string); !ok {
-		if filter == "" {
-			return fmt.Errorf("no repo specified")
-		}
-		repo = filter
+	if _, ok = in["name"]; !ok {
+		return fmt.Errorf("cannot create session. empty name")
 	}
+	name = in["name"].(string)
+
 	if _, ok = in["owner"]; ok {
 		owner = in["owner"].(string)
 	}
@@ -212,19 +149,23 @@ func NewSessionOrAttach(in map[string]any, filter string, includeKubeConfig bool
 		command = in["command"].(string)
 	}
 
-	if HasSession(repo) {
-		if SessionPath(repo) == path {
-			return AttachSession(repo)
+	if HasSession(name) {
+		if SessionPath(name) == path {
+			return AttachSession(name)
 		}
-		sessionName := strings.Join([]string{owner, repo}, "-")
-		if HasSession(sessionName) {
-			if SessionPath(sessionName) == path {
+		// prevent sessions being named '-session'
+		if owner != "" {
+			sessionName := strings.Join([]string{owner, name}, "-")
+			if HasSession(sessionName) && SessionPath(sessionName) == path {
 				return AttachSession(sessionName)
 			}
+			return CreateSession(sessionName, path, command, includeKubeConfig, true)
 		}
-		return CreateSession(sessionName, path, command, includeKubeConfig, true)
+		// It should be almost impossible to get to this point
+		// but it --is-- possible
+		return fmt.Errorf("duplicate session without an owner %q", name)
 	}
-	return CreateSession(repo, path, command, includeKubeConfig, true)
+	return CreateSession(name, path, command, includeKubeConfig, true)
 }
 
 // Get the path for a given session
@@ -239,7 +180,7 @@ func SessionPath(name string) string {
 	if err != nil {
 		path, _ = os.UserHomeDir()
 	}
-	return strings.TrimSpace(path)
+	return path
 }
 
 // List all panes in a given session
@@ -252,34 +193,4 @@ func SessionPanes(session string) ([]string, error) {
 		return []string{}, err
 	}
 	return strings.Split(output, "\n"), nil
-}
-
-func SessionWindows(session string) ([]string, error) {
-	args := []string{
-		"list-windows", "-t", session, "-F", "#S:#I",
-	}
-	out, _, err := Exec(args)
-	if err != nil {
-		return []string{}, err
-	}
-
-	return strings.Split(out, "\n"), nil
-}
-
-// List all tmux sessions and sort them by the order provided
-func SortedSessionlist(by SortBy) []Session {
-	sessions := ListSessions()
-	sort.SliceStable(sessions, func(i, j int) bool {
-		switch by {
-		case Name: // default behaviour
-		case NameReverse:
-			return sessions[j].Name < sessions[i].Name
-		case Newest:
-			return sessions[i].Created.Unix() < sessions[j].Created.Unix()
-		case Oldest:
-			return sessions[j].Created.Unix() < sessions[i].Created.Unix()
-		}
-		return sessions[i].Name < sessions[j].Name
-	})
-	return sessions
 }

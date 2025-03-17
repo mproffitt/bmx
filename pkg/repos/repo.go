@@ -29,8 +29,8 @@ import (
 
 	"github.com/charlievieth/fastwalk"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/evertras/bubble-table/table"
 	giturl "github.com/kubescape/go-git-url"
+	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	git "gopkg.in/src-d/go-git.v4"
 )
@@ -104,18 +104,14 @@ func Find(paths []string, pattern string) ([]Repository, error) {
 	return unique(repoList), nil
 }
 
-func RepoCallback(rowData table.RowData, filter string, useKubeConfig bool) tea.Cmd {
+func RepoCallback(data map[string]any, useKubeConfig bool) tea.Cmd {
 	return func() tea.Msg {
-		data := make(map[string]any)
-		if map[string]any(rowData) != nil {
-			data = map[string]any(rowData)
-		}
-		if _, ok := data["path"]; !ok {
+		if p, ok := data["path"]; !ok || p == "" {
 			path, _ := os.UserHomeDir()
 			data["path"] = path
 		}
-		if err := tmux.NewSessionOrAttach(data, filter, useKubeConfig); err != nil {
-			fmt.Println("error", err)
+		if err := tmux.NewSessionOrAttach(data, useKubeConfig); err != nil {
+			return helpers.ErrorMsg{Error: err}
 		}
 		return tea.Quit()
 	}

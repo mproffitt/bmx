@@ -64,7 +64,7 @@ func Execute() {
 }
 
 func createTitle(t string) string {
-	return fmt.Sprintf("#[align=centre fg=%s] %s ", tmsConfig.Style.Title, t)
+	return fmt.Sprintf("#[align=centre fg=%s] %s ", tmsConfig.Colours().Yellow.Dark, t)
 }
 
 func init() {

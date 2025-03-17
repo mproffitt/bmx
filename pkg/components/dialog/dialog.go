@@ -123,19 +123,19 @@ func New(message string, cancelOnly bool, c *config.Config, standalone bool, wid
 		styles: styles{
 			dialog: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(lipgloss.Color(c.Style.DialogBorderColor)).
+				BorderForeground(c.Colours().Black).
 				Padding(1, 0),
 
 			button: lipgloss.NewStyle().
-				Foreground(lipgloss.Color(c.Style.ButtonInactiveForeground)).
-				Background(lipgloss.Color(c.Style.ButtonInactiveBackground)).
+				Foreground(c.Colours().Bg).
+				Background(c.Colours().Fg).
 				Padding(0, 3).
 				MarginTop(1).
 				MarginRight(2),
 
 			activeButton: lipgloss.NewStyle().
-				Foreground(lipgloss.Color(c.Style.ButtonActiveForeground)).
-				Background(lipgloss.Color(c.Style.ButtonActiveBackground)).
+				Foreground(c.Colours().BrightWhite).
+				Background(c.Colours().BrightRed).
 				MarginRight(2).
 				MarginTop(1).
 				Padding(0, 3).

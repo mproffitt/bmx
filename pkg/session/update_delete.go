@@ -24,13 +24,14 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/overlay"
 	"github.com/mproffitt/bmx/pkg/config"
-	"github.com/mproffitt/bmx/pkg/dialog"
 	"github.com/muesli/reflow/wordwrap"
 )
 
 func (m *model) delete(msg tea.Msg) tea.Cmd {
-	if m.focused == overlay {
+	if m.focused == overlayPane {
 		return nil
 	}
 
@@ -38,8 +39,8 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 	if m.focused == contextPane {
 		m.context, cmd = m.context.Update(msg)
 		if m.overlay == nil {
-			m.overlay = NewOverlayContainer(&m.context, m.focused)
-			m.focused = overlay
+			m.overlay = overlay.New(&m.context, m.focused)
+			m.focused = overlayPane
 		}
 		return cmd
 	}
@@ -58,7 +59,7 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 			lipgloss.NewStyle().
 				Bold(true).
 				Padding(1, 0).
-				Foreground(lipgloss.Color(m.config.Style.FocusedColor)).
+				Foreground(m.config.Colours().BrightBlue).
 				Render(m.session.Name)))
 		if m.config.CreateSessionKubeConfig {
 			message = wordwrap.String("This will remove the associated kubeconfig"+

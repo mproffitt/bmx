@@ -23,12 +23,12 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/config"
-	"github.com/mproffitt/bmx/pkg/dialog"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
-	"github.com/mproffitt/bmx/pkg/kubernetes/ui/panel"
-	"github.com/mproffitt/bmx/pkg/tmux"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
+	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
 
 // Has the current overlay got an active dialog on it
@@ -48,7 +48,18 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		sendOverlayUpdate = true
 	)
 
-	m.session = m.list.SelectedItem().(tmux.Session)
+	switch m.active {
+	case sessionManager:
+		if selected, ok := m.list.SelectedItem().(session.Session); ok {
+			m.session = &selected
+		}
+		m.list.Select(int((*m.session).Index))
+	case windowManager:
+		if selected, ok := m.list.SelectedItem().(tmuxui.Window); ok {
+			m.window = &selected
+		}
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 
@@ -57,122 +68,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// other elements
 		if m.dialog != nil {
 			m.dialog, cmd = m.dialog.Update(msg)
-			// cmd, err = m.handleDialog(msg)
 			return m, cmd
 		}
 
 		// Main window key handling
-		switch {
-		case key.Matches(msg, m.keymap.Quit):
-			switch m.focused {
-			case overlay:
-				// If overlay parent is of type `model` (session) then
-				// skip the update to prevent self-referencial crash
-				switch (*m.overlay.parent).(type) {
-				case *model:
-					break
-				default:
-					*m.overlay.parent, _ = (*m.overlay.parent).(helpers.UseOverlay).Update(msg)
-				}
-
-				// If the overlay model implements HasActiveDialog
-				// and the overlay has an active dialog, then
-				// don't continue parsing key messages and instead
-				// just break out of the switch
-				model, ok := m.overlay.model.(HasActiveDialog)
-				if ok && model.HasActiveDialog() {
-					break
-				}
-				m.focused = m.overlay.previous
-				m.overlay = nil
-				return m, nil
-			default:
-				cmds = append(cmds, tea.Quit)
-			}
-		case key.Matches(msg, m.keymap.Tab):
-			switch m.focused {
-			case sessionList:
-				m.focused = previewPane
-			case previewPane:
-				m.focused = sessionList
-				if m.config.ManageSessionKubeContext {
-					m.focused = contextPane
-					m.context = m.context.(*panel.Model).Focus()
-				}
-			case contextPane:
-				m.focused = sessionList
-				m.context = m.context.(*panel.Model).Blur()
-			}
-		case key.Matches(msg, m.keymap.ShiftTab):
-			switch m.focused {
-			case sessionList:
-				m.focused = previewPane
-				if m.config.ManageSessionKubeContext {
-					m.focused = contextPane
-					m.context = m.context.(*panel.Model).Focus()
-				}
-			case previewPane:
-				m.focused = sessionList
-			case contextPane:
-				m.focused = previewPane
-				m.context = m.context.(*panel.Model).Blur()
-			}
-		case key.Matches(msg, m.keymap.Enter):
-			switch m.focused {
-			case contextPane:
-				m.context, cmd = m.context.Update(kubernetes.ContextChangeMsg{})
-				cmds = append(cmds, cmd)
-			case overlay:
-				break
-			default:
-				if m.dialog == nil {
-					err = tmux.AttachSession(m.session.Name)
-					cmds = append(cmds, tea.Quit)
-				}
-			}
-		case key.Matches(msg, m.keymap.CtrlN):
-			model := tea.Model(m)
-			m.overlay = NewOverlayContainer(&model, m.focused)
-			cmd = m.overlay.model.(tea.Model).Init()
-			cmds = append(cmds, cmd)
-			m.focused = overlay
-		case key.Matches(msg, m.keymap.Delete):
-			m.delete(msg)
-		case key.Matches(msg, m.keymap.Help):
-			if m.focused == overlay {
-				var model tea.Model
-				model, cmd = m.overlay.model.Update(msg)
-				m.overlay.model = model.(helpers.UseOverlay)
-				return m, cmd
-			}
-			m.displayHelp()
-		case key.Matches(msg, m.keymap.ToggleZoom):
-			if m.focused == previewPane {
-				m.zoomed = !m.zoomed
-			}
-		case key.Matches(msg, m.keymap.HideContext):
-			if m.focused != overlay {
-				m.contextHidden = !m.contextHidden
-				m.resize()
-			}
-		default:
-			switch m.focused {
-			case contextPane:
-				m.context, cmd = m.context.Update(msg)
-				cmds = append(cmds, cmd)
-				if m.overlay == nil && m.context.(*panel.Model).RequiresOverlay() {
-					// don't send an update to the overlay on first creation
-					sendOverlayUpdate = false
-					m.overlay = NewOverlayContainer(&m.context, m.focused)
-					m.focused = overlay
-				}
-			case previewPane:
-				key := msg.String()
-				if len(key) == 1 && key[0] >= '0' && key[0] <= '9' {
-					m.lastch = (uint(key[0]-'0') + 9) % 10
-				}
-			}
+		var early bool
+		cmd, early, err = m.switchKeyMessage(msg, &sendOverlayUpdate)
+		if early {
+			return m, cmd
 		}
+		cmds = append(cmds, cmd)
 
 		// Switch focus
 		switch m.focused {
@@ -180,19 +85,24 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.list, cmd = m.list.Update(msg)
 			m.list.SetDelegate(m.styles.delegates.normal)
 			cmds = append(cmds, cmd)
+			if m.dialog == nil && key.Matches(msg, m.keymap.Enter) {
+				err = m.session.Attach()
+				cmds = append(cmds, tea.Quit)
+			}
 		case previewPane:
 			m.preview, cmd = m.preview.Update(msg)
 			m.list.SetDelegate(m.styles.delegates.shaded)
 			cmds = append(cmds, cmd)
 		case contextPane:
-			// Don't resend the messages to context-pane as it leads to duplication
-		case overlay:
+			m.context, cmd = m.context.Update(kubernetes.ContextChangeMsg{})
+			cmds = append(cmds, cmd)
+		case overlayPane:
 			if !sendOverlayUpdate {
 				break
 			}
 			var model tea.Model
-			model, cmd = m.overlay.model.Update(msg)
-			m.overlay.model = model.(helpers.UseOverlay)
+			model, cmd = m.overlay.Model.Update(msg)
+			m.overlay.Model = model.(helpers.UseOverlay)
 			cmds = append(cmds, cmd)
 		}
 
@@ -201,8 +111,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmds = append(cmds, cmd)
 	case helpers.OverlayMsg:
 		if m.overlay != nil {
-			_, cmd = (*m.overlay.parent).Update(msg)
-			m.focused = m.overlay.previous
+			_, cmd = (*m.overlay.Parent).Update(msg)
+			m.focused = m.overlay.Previous
 			m.overlay = nil
 			cmds = append(cmds, cmd)
 		}
@@ -210,16 +120,16 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		updateModel := false
 
 		if m.overlay != nil {
-			switch (*m.overlay.parent).(type) {
+			switch (*m.overlay.Parent).(type) {
 			case *model:
 				updateModel = true
 			}
 		}
 
-		if m.focused == overlay && updateModel {
+		if m.focused == overlayPane && updateModel {
 			var model tea.Model
-			model, cmd = m.overlay.model.Update(msg)
-			m.overlay.model = model.(helpers.UseOverlay)
+			model, cmd = m.overlay.Model.Update(msg)
+			m.overlay.Model = model.(helpers.UseOverlay)
 			return m, cmd
 		}
 		if msg.Done {
@@ -230,22 +140,25 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.width = msg.Width
 		m.resize()
+		m.setItems()
 	case spinner.TickMsg:
 		if m.overlay != nil {
 			var model tea.Model
-			model, cmd = m.overlay.model.Update(msg)
-			m.overlay.model = model.(helpers.UseOverlay)
+			model, cmd = m.overlay.Model.Update(msg)
+			m.overlay.Model = model.(helpers.UseOverlay)
 			cmds = append(cmds, cmd)
 		}
-	case helpers.ReloadSessionsMsg:
+	case helpers.ReloadManagerMsg:
 		m.setItems()
-	}
-
-	if m.context != nil {
-		ctxError := m.context.(*panel.Model).GetError()
-		if ctxError != nil {
-			err = ctxError
+	case helpers.ErrorMsg:
+		if m.focused == overlayPane {
+			m.focused = m.overlay.Previous
+			m.overlay = nil
 		}
+		err = msg.Error
+	case helpers.SaveMsg:
+		cmd = m.save()
+		cmds = append(cmds, cmd)
 	}
 
 	// handle error in dialog

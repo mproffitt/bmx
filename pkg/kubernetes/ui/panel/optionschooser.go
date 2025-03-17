@@ -17,18 +17,46 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package session
+package panel
 
 import (
-	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/charmbracelet/bubbles/list"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mproffitt/bmx/pkg/components/optionlist"
+	"github.com/mproffitt/bmx/pkg/helpers"
 )
 
-func (m *model) displayHelp() {
-	entries := make([]dialog.HelpEntry, 0)
-	entries = append(entries, m.Help())
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		entries = append(entries, m.context.(dialog.UseHelp).Help())
-	}
+type OptionType int
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+const (
+	None OptionType = iota
+	ClusterLogin
+	Namespace
+	Session
+)
+
+func (m *Model) optionChooser(o OptionType, update *string) tea.Cmd {
+	if update != nil {
+		*update = m.lists[m.activeList].SelectedItem().(list.DefaultItem).Title()
+	}
+	m.optionType = o
+
+	var err error
+	var options optionlist.Options
+	{
+		switch m.optionType {
+		case Namespace:
+			options, err = m.getNamespaceList()
+
+		case ClusterLogin:
+			options, err = m.getClusterList()
+		case Session:
+			options, err = m.getSessionList()
+		}
+	}
+	if err != nil {
+		return helpers.NewErrorCmd(err)
+	}
+	m.options = optionlist.NewOptionModel(options, m.config)
+	return nil
 }

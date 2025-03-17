@@ -34,7 +34,7 @@ var manageCmd = &cobra.Command{
 	Short: "run the session manager",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !noPopup {
-			err := tmux.DisplayPopup("68%", "70%", createTitle("Session Manager"), tmsConfig.Style.BorderFgColor, []string{
+			err := tmux.DisplayPopup("68%", "70%", createTitle("Session Manager"), tmsConfig.Colours().Black.Dark, []string{
 				tmuxExec, "--no-popup", "manage",
 			})
 			if err != nil {

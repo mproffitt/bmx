@@ -23,27 +23,51 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+type ErrorMsg struct {
+	Error error
+}
+
+func NewErrorCmd(err error) tea.Cmd {
+	return func() tea.Msg {
+		return ErrorMsg{
+			Error: err,
+		}
+	}
+}
+
 type OverlayMsg struct {
 	Message any
 }
 
-func NewOverlayMsg(message any) OverlayMsg {
-	return OverlayMsg{
-		Message: message,
-	}
-}
-
 func OverlayCmd(message any) tea.Cmd {
 	return func() tea.Msg {
-		return NewOverlayMsg(message)
+		return OverlayMsg{
+			Message: message,
+		}
 	}
 }
 
-type ReloadSessionsMsg struct{}
+type ReloadManagerMsg struct{}
 
-func ReloadSessionsCmd() tea.Cmd {
+func ReloadManagerCmd() tea.Cmd {
 	return func() tea.Msg {
-		return ReloadSessionsMsg{}
+		return ReloadManagerMsg{}
+	}
+}
+
+type ReloadWindowsMsg struct{}
+
+func ReloadWindowsCmd() tea.Cmd {
+	return func() tea.Msg {
+		return ReloadWindowsMsg{}
+	}
+}
+
+type SaveMsg struct{}
+
+func SaveSessionsCmd() tea.Cmd {
+	return func() tea.Msg {
+		return SaveMsg{}
 	}
 }
 

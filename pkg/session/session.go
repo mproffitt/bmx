@@ -21,19 +21,24 @@ package session
 
 import (
 	"math"
-	"sort"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textinput"
-	"github.com/charmbracelet/bubbles/viewport"
+
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/overlay"
+	"github.com/mproffitt/bmx/pkg/components/viewport"
 	"github.com/mproffitt/bmx/pkg/config"
-	"github.com/mproffitt/bmx/pkg/dialog"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/repos"
+	"github.com/mproffitt/bmx/pkg/repos/ui/table"
 	"github.com/mproffitt/bmx/pkg/tmux"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/manager"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
+	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
 
 const (
@@ -45,32 +50,41 @@ const (
 	kubernetesSessionHeight = .4
 )
 
-type FocusType int
-
 const (
-	sessionList FocusType = iota
+	sessionList overlay.FocusType = iota
 	previewPane
 	contextPane
-	overlay
+	overlayPane
 	dialogp
 	helpd
 )
 
+type ActiveType int
+
+const (
+	sessionManager ActiveType = iota
+	windowManager
+)
+
 type model struct {
-	config        *config.Config
-	context       tea.Model
-	contextHidden bool
-	deleting      bool
-	dialog        tea.Model
-	filter        textinput.Model
-	focused       FocusType
-	height        int
-	keymap        *keyMap
-	lastch        uint
-	list          list.Model
-	overlay       *overlayContainer
-	preview       viewport.Model
-	session       tmux.Session
+	active          ActiveType
+	config          *config.Config
+	context         tea.Model
+	contextHidden   bool
+	deleting        bool
+	dialog          tea.Model
+	filter          textinput.Model
+	focused         overlay.FocusType
+	height          int
+	keymap          *keyMap
+	lastch          uint
+	list            list.Model
+	manager         *manager.Model
+	managerIterator manager.Iterator
+	overlay         *overlay.Container
+	preview         *viewport.Model
+	session         *session.Session
+	window          *tmuxui.Window
 
 	styles styles
 	width  int
@@ -90,24 +104,28 @@ type delegates struct {
 }
 
 func New(c *config.Config) *model {
+	manager, Iterator := manager.New()
 	items := []list.Item{}
 	m := model{
-		config:        c,
-		contextHidden: !c.ManageSessionKubeContext,
-		filter:        textinput.New(),
-		focused:       sessionList,
-		keymap:        mapKeys(),
-		list:          list.New(items, list.NewDefaultDelegate(), 0, 0),
-		preview:       viewport.New(0, 0),
+		active:          sessionManager,
+		config:          c,
+		contextHidden:   !c.ManageSessionKubeContext,
+		filter:          textinput.New(),
+		focused:         sessionList,
+		keymap:          mapKeys(),
+		list:            list.New(items, list.NewDefaultDelegate(), 0, 0),
+		manager:         manager,
+		managerIterator: Iterator,
+		preview:         viewport.New(c.Colours(), 0, 0),
 		styles: styles{
 			sessionlist: lipgloss.NewStyle().MarginRight(1),
 			viewportNormal: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color(c.Style.BorderFgColor)).
+				BorderForeground(c.Colours().Black).
 				MarginRight(1),
 			viewportFocused: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(lipgloss.Color(c.Style.FocusedColor)).
+				BorderForeground(c.Colours().Blue).
 				MarginRight(1),
 			delegates: delegates{},
 		},
@@ -135,7 +153,7 @@ func (m *model) Init() tea.Cmd {
 }
 
 func (m *model) Overlay() helpers.UseOverlay {
-	repos := repos.New(m.config, repos.RepoCallback)
+	repos := table.New(m.config, repos.RepoCallback)
 	width := int(math.Ceil(float64(m.width) * .8))
 	height := int(math.Ceil(float64(m.height) * .75))
 	repos.SetSize(width, height)
@@ -161,19 +179,24 @@ func (m *model) handleDialog(status dialog.Status) (tea.Cmd, error) {
 	)
 	m.dialog = nil
 
-	if m.deleting {
-		switch status {
-		case dialog.Confirm:
-			err = kubernetes.DeleteConfig(m.session.Name)
-			if err == nil {
-				err = tmux.KillSwitch(m.session.Name, m.config.DefaultSession)
+	switch status {
+	case dialog.Confirm:
+		switch m.active {
+		case sessionManager:
+			if m.deleting {
+				err = kubernetes.DeleteConfig(m.session.Name)
+				if err == nil {
+					err = m.manager.KillSwitch(m.session.Name, m.config.DefaultSession)
+				}
 			}
-			m.list.Select(0)
-			fallthrough
-		case dialog.Cancel:
-			m.deleting = false
+			cmd = helpers.ReloadManagerCmd()
+		case windowManager:
+			break
 		}
-		m.setItems()
+		m.list.Select(0)
+		fallthrough
+	case dialog.Cancel:
+		m.deleting = false
 	}
 
 	if m.overlay != nil {
@@ -183,16 +206,43 @@ func (m *model) handleDialog(status dialog.Status) (tea.Cmd, error) {
 }
 
 func (m *model) setItems() {
-	sessions := tmux.ListSessions()
-	items := make([]list.Item, len(sessions))
-	sort.SliceStable(sessions, func(i, j int) bool {
+	switch m.active {
+	case sessionManager:
+		m.setSessionItems()
+	case windowManager:
+		m.setWindowsItems(m.session.Name)
+	}
+}
+
+func (m *model) setSessionItems() {
+	sessions := m.manager.Items()
+	/*sort.SliceStable(sessions, func(i, j int) bool {
 		if sessions[i].Attached != sessions[j].Attached {
 			return sessions[i].Attached
 		}
 		return sessions[i].Name < sessions[j].Name
-	})
+	})*/
+
+	items := make([]list.Item, len(sessions))
 	for i, s := range sessions {
+		s.Index = uint(i)
 		items[i] = s
 	}
 	_ = m.list.SetItems(items)
+	index := 0
+	if m.session != nil {
+		index = int(m.session.Index)
+	}
+	m.list.Select(index)
+}
+
+func (m *model) setWindowsItems(session string) {
+	colours := m.config.Colours()
+	windows := tmuxui.ListWindows(session, &colours)
+	items := make([]list.Item, len(windows))
+	for i, w := range windows {
+		items[i] = w
+	}
+	_ = m.list.SetItems(items)
+	m.list.Select(0)
 }

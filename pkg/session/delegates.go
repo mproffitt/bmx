@@ -21,32 +21,31 @@ package session
 
 import (
 	"github.com/charmbracelet/bubbles/list"
-	"github.com/charmbracelet/lipgloss"
 )
 
 func (m *model) createListNormalDelegate() list.DefaultDelegate {
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(m.config.Style.ListNormalTitle))
+		Foreground(m.config.Colours().Purple)
 
 	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(m.config.Style.ListNormalDescription))
+		Foreground(m.config.Colours().BrightBlack)
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(lipgloss.Color(m.config.Style.ListNormalSelectedTitle))
+		Foreground(m.config.Colours().BrightBlue)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(lipgloss.Color(m.config.Style.ListNormalSelectedDescription))
+		Foreground(m.config.Colours().BrightWhite)
 	return delegate
 }
 
 func (m *model) createListShadedDelegate() list.DefaultDelegate {
 	delegate := list.NewDefaultDelegate()
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(m.config.Style.ListShadedTitle))
+		Foreground(m.config.Colours().BrightBlack)
 	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(lipgloss.Color(m.config.Style.ListShadedDescription))
+		Foreground(m.config.Colours().BrightBlack)
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(lipgloss.Color(m.config.Style.ListShadedSelectedTitle))
+		Foreground(m.config.Colours().BrightBlack)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(lipgloss.Color(m.config.Style.ListShadedSelectedDescription))
+		Foreground(m.config.Colours().BrightBlack)
 	return delegate
 }

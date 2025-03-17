@@ -20,48 +20,71 @@
 package session
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/overlay"
+	"github.com/mproffitt/bmx/pkg/components/viewport"
 	"github.com/mproffitt/bmx/pkg/config"
-	"github.com/mproffitt/bmx/pkg/dialog"
-	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes/ui/panel"
 	"github.com/mproffitt/bmx/pkg/tmux"
-	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
+	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
 
 func (m *model) View() string {
-	session := m.getSession()
-	m.makePreview(session, m.lastch)
+	var index uint64 = 1
+	switch m.active {
+	case sessionManager:
+		if selected, ok := m.list.SelectedItem().(*session.Session); ok {
+			m.session = selected
+		}
+	case windowManager:
+		if selected, ok := m.list.SelectedItem().(tmuxui.Window); ok {
+			m.window = &selected
+			index = uint64(m.window.Index)
+		}
+	}
+	m.makePreview(m.session.Name, index, m.lastch)
+
 	if m.config.ManageSessionKubeContext && m.context != nil {
 		m.context = m.context.(*panel.Model).UpdateContextList(
-			session, m.getSessionKubeconfig(session))
+			m.session.Name, m.getSessionKubeconfig(m.session.Name))
 	}
 
-	left := strings.Builder{}
+	var left string
 	{
-		sessionlist := m.list.View()
-		left.WriteString(m.styles.sessionlist.MarginTop(1).Render(sessionlist))
+		sessionlist := m.styles.sessionlist.MarginTop(1).Render(m.list.View())
+		w, h := m.list.Width()+2, m.list.Height()
+		left = viewport.New(m.config.Colours(), w, h).
+			SetContent(sessionlist).
+			SetSize(w, h).
+			View()
 	}
+
+	title := fmt.Sprintf("Preview : %s:%d", m.session.Name, index)
+	m.preview.SetTitle(title, viewport.Inline)
 
 	right := strings.Builder{}
 	{
 		switch m.focused {
-		case sessionList, contextPane, overlay:
-			right.WriteString(m.styles.viewportNormal.Render(m.preview.View()))
+		case sessionList, contextPane, overlayPane:
+			m.preview.Blur()
 		case previewPane:
-			right.WriteString(m.styles.viewportFocused.Render(m.preview.View()))
+			m.preview.Focus()
 		}
 
+		right.WriteString(m.preview.View())
 		if m.config.ManageSessionKubeContext && m.context != nil && !m.contextHidden {
 			right.WriteString("\n" + m.context.View())
 		}
 	}
 
-	doc := lipgloss.JoinHorizontal(lipgloss.Top, left.String(), right.String())
+	doc := lipgloss.JoinHorizontal(lipgloss.Bottom, left, right.String())
 	return m.viewOverlays(doc)
 }
 
@@ -69,50 +92,48 @@ func (m *model) viewOverlays(doc string) string {
 	if m.dialog != nil {
 		dw, _ := m.dialog.(*dialog.Dialog).GetSize()
 		w := m.width/2 - max(dw, config.DialogWidth)/2
-		return helpers.PlaceOverlay(w, 10, m.dialog.View(), doc, false)
+		return overlay.PlaceOverlay(w, 10, m.dialog.View(), doc, false)
 	}
 
 	if m.overlay != nil {
-		w, h := m.overlay.model.GetSize()
+		w, h := m.overlay.Model.GetSize()
 		w = m.width/2 - max(w, config.DialogWidth)/2
 		h = m.height/2 - max(h, 10)/2
 
-		return helpers.PlaceOverlay(w, h, m.overlay.View(),
+		return overlay.PlaceOverlay(w, h, m.overlay.View(),
 			doc, false)
 	}
 
 	return doc
 }
 
-func (m *model) getSession() string {
-	current := m.list.SelectedItem()
-	if current == nil {
-		current = m.list.Items()[0]
-	}
-	return current.(list.DefaultItem).Title()
-}
-
-func (m *model) makePreview(session string, pane uint) {
+func (m *model) makePreview(session string, window uint64, pane uint) {
 	var preview string
+	var err error
 
-	panes, _ := tmux.SessionPanes(session)
+	panes, _ := tmux.SessionPanes(fmt.Sprintf("%s:%d", session, window))
 	if pane >= uint(len(panes)) {
 		return
 	}
-	preview, _ = tmux.CapturePane(panes[pane], m.preview.Width)
+	w, _ := m.preview.GetSize()
+	preview, err = tmux.CapturePane(panes[pane], w-2)
+	if err != nil {
+		m.preview.SetContent(err.Error())
+		return
+	}
 
 	if !m.zoomed {
-		preview = m.makeZoomedOut(session)
+		preview = m.makeZoomedOut(session, window)
 	}
-	m.preview.SetContent(preview)
+	m.preview = m.preview.SetContent(preview)
 }
 
-func (m *model) makeZoomedOut(session string) string {
-	windows, err := tmux.SessionWindows(session)
+func (m *model) makeZoomedOut(session string, window uint64) string {
+	windows, err := tmuxui.SessionWindows(session)
 	if err != nil {
 		return err.Error()
 	}
-	layout, err := tmuxui.New(windows[0])
+	layout, err := tmuxui.NewLayout(windows[window-1])
 	if err != nil {
 		return err.Error()
 	}
@@ -122,17 +143,19 @@ func (m *model) makeZoomedOut(session string) string {
 		colour = m.styles.viewportFocused.GetBorderTopForeground()
 	}
 
-	layout.Resize(m.preview.Width, m.preview.Height).
+	w, h := m.preview.GetSize()
+	layout.Resize(w-2, h).
 		WithBorderColour(colour)
 	return layout.View()
 }
 
 func (m *model) resize() {
 	width := min(listWidth, int(float64(m.width)*.25))
-	height := (m.height - padding)
-	m.list.SetSize(width, (m.height - padding))
-	m.preview.Width = (m.width - width) - (2 * padding)
-	m.preview.Height = height
+	height := m.height // (m.height - padding)
+
+	previewWidth := (m.width - width) - padding
+	m.list.SetSize(width, height-padding)
+	m.preview.SetSize(previewWidth, height)
 
 	if m.config.ManageSessionKubeContext && !m.contextHidden {
 		// look for 40% of the screen space
@@ -148,16 +171,16 @@ func (m *model) resize() {
 		// calculate how many rows and cols we can use
 		rows, cols, colWidth := 0, 0, 0
 		{
-			cols = int(math.Floor(float64(m.preview.Width-2) / float64(panel.KubernetesListWidth)))
-			colWidth = int(math.Floor(float64(m.preview.Width-2) / float64(cols)))
-			rows = int(math.Floor(float64(sessionHeight)/float64(panel.KubernetesRowHeight))) - 1
+			cols = int(math.Floor(float64(previewWidth-2) / float64(panel.KubernetesListWidth)))
+			colWidth = int(math.Floor(float64(previewWidth-2) / float64(cols)))
+			rows = int(math.Floor(float64(sessionHeight) / float64(panel.KubernetesRowHeight)))
 		}
 
 		if m.context == nil {
 			session := m.list.SelectedItem().(list.DefaultItem).Title()
 			m.context = panel.NewKubectxPane(m.config, session, rows, cols, colWidth)
 		}
-		m.preview.Height = m.preview.Height - sessionHeight - 2
-		m.context = m.context.(*panel.Model).SetSize(m.preview.Width-4, sessionHeight, colWidth)
+		m.preview.SetSize(previewWidth, (height-sessionHeight)-2)
+		m.context = m.context.(*panel.Model).SetSize(previewWidth-6, sessionHeight, colWidth)
 	}
 }

@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/mproffitt/bmx/pkg/tmux"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/manager"
 	"github.com/spf13/cobra"
 )
 
@@ -54,7 +54,8 @@ do not respond to being suspended. Use with caution.
 Generally, if your shell is set up correctly, you should not need to use the
 'send-vars' flag although it exists as a convenience function.`,
 		Run: func(cmd *cobra.Command, args []string) {
-			err := tmux.Refresh(tmsConfig.CreateSessionKubeConfig, sendVars)
+			manager, _ := manager.New()
+			err := manager.Refresh(tmsConfig.CreateSessionKubeConfig, sendVars)
 			if err != nil {
 
 				fmt.Fprintf(os.Stderr, "failed to refresh sessions. error was %q", err.Error())

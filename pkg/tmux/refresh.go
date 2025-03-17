@@ -22,25 +22,17 @@ package tmux
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/mproffitt/bmx/pkg/helpers"
-	"github.com/mproffitt/bmx/pkg/kubernetes"
 )
 
 var EnvironmentVars = []string{}
 
 var CommonShells = []string{
 	"sh", "csh", "ksh", "zsh", "bash", "dash", "fish", "tcsh",
-}
-
-func findShell(shell string) bool {
-	for _, v := range CommonShells {
-		if shell == v {
-			return true
-		}
-	}
-	return false
 }
 
 // Refresh the TMUX environment
@@ -61,43 +53,23 @@ func Refresh(includeKubeconfig, sendVars bool) error {
 
 	for _, file := range strings.Split(stdout, ",") {
 		args = []string{
-			"source-file", strings.TrimSpace(file),
+			"source-file", file,
 		}
 		err := ExecSilent(args)
 		if err != nil {
 			return fmt.Errorf("failed to source file %q %w", file, err)
 		}
 	}
-
-	if includeKubeconfig {
-		err = UpdateSessionEnvironment()
-		if err != nil {
-			return err
-		}
-		EnvironmentVars = append(EnvironmentVars, "KUBECONFIG")
-	}
-	if sendVars {
-		SendVars(EnvironmentVars)
-	}
-
 	return nil
 }
 
-// Send an update to TMUX for the KUBECONFIG session name
-func UpdateSessionEnvironment() error {
-	for _, session := range ListSessions() {
-		configFile, err := kubernetes.CreateConfig(session.Name)
-		if err != nil {
-			return fmt.Errorf("failed to create kubeconfig for session %q %w", session.Name, err)
-		}
-		args := []string{
-			"set-environment", "-t", session.Name, "KUBECONFIG", configFile,
-		}
-		var e string
-		_, e, err = Exec(args)
-		if err != nil {
-			return fmt.Errorf("failed to set KUBECONFIG environment variable for session %q %q %w", session.Name, e, err)
-		}
+func SetSessionEnvironment(session, variable, value string) error {
+	args := []string{
+		"set-environment", "-t", session, variable, value,
+	}
+	_, e, err := Exec(args)
+	if err != nil {
+		return fmt.Errorf("failed to set %q environment variable for session %q %q %w", variable, session, e, err)
 	}
 	return nil
 }
@@ -111,8 +83,15 @@ func ListAllPanes() []string {
 		return []string{}
 	}
 
-	stdout = strings.TrimSpace(stdout)
 	return strings.Split(stdout, "\n")
+}
+
+func PaneCurrentCommand(sessionPane string) string {
+	out, _, _ := Exec([]string{
+		"display", "-p", "-t", sessionPane, "#{pane_current_command}",
+	})
+
+	return out
 }
 
 // Send tmux environment vars to all running panes
@@ -125,11 +104,11 @@ func ListAllPanes() []string {
 // of this command may be unpredictable. Use with caution
 func SendVars(varsToSend []string) {
 	for _, sessionPane := range ListAllPanes() {
-		out, _, _ := Exec([]string{
-			"display", "-p", "-t", sessionPane, "#{pane_current_command}",
-		})
+		out := PaneCurrentCommand(sessionPane)
+
 		skipSuspend := false
-		if out != "" && (out == helpers.ExecutableName() || findShell(out)) {
+		out = filepath.Base(out)
+		if out != "" && (out == helpers.ExecutableName() || slices.Contains(CommonShells, out)) {
 			skipSuspend = true
 		}
 		if !skipSuspend {

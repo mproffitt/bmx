@@ -17,18 +17,13 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package session
+package table
 
-import (
-	"github.com/mproffitt/bmx/pkg/components/dialog"
-)
+import "github.com/mproffitt/bmx/pkg/components/dialog"
 
-func (m *model) displayHelp() {
+func (m *Model) displayHelp() {
 	entries := make([]dialog.HelpEntry, 0)
 	entries = append(entries, m.Help())
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		entries = append(entries, m.context.(dialog.UseHelp).Help())
-	}
 
 	m.dialog = dialog.HelpDialog(m.config, entries...)
 }

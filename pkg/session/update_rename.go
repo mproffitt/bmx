@@ -19,16 +19,4 @@
 
 package session
 
-import (
-	"github.com/mproffitt/bmx/pkg/components/dialog"
-)
-
-func (m *model) displayHelp() {
-	entries := make([]dialog.HelpEntry, 0)
-	entries = append(entries, m.Help())
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		entries = append(entries, m.context.(dialog.UseHelp).Help())
-	}
-
-	m.dialog = dialog.HelpDialog(m.config, entries...)
-}
+func (m *model) rename() {}

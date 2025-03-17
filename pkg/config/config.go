@@ -25,6 +25,7 @@ import (
 	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"gopkg.in/yaml.v3"
 )
@@ -40,8 +41,33 @@ type Config struct {
 	CreateSessionKubeConfig  bool     `yaml:"createSessionKubeConfig"`
 	DefaultSession           string   `yaml:"defaultSession"`
 	ManageSessionKubeContext bool     `yaml:"manageSessionKubeContext"`
-	Style                    Style    `yaml:"style"`
+	Theme                    string   `yaml:"theme"`
+	Sessions                 []any    `yaml:"sessions"`
 	filename                 string
+	colours                  ColourStyles
+}
+
+type ColourStyles struct {
+	Fg           lipgloss.AdaptiveColor
+	Bg           lipgloss.AdaptiveColor
+	SelectionBg  lipgloss.AdaptiveColor
+	Cursor       lipgloss.AdaptiveColor
+	BrightBlack  lipgloss.AdaptiveColor
+	BrightBlue   lipgloss.AdaptiveColor
+	BrightCyan   lipgloss.AdaptiveColor
+	BrightGreen  lipgloss.AdaptiveColor
+	BrightPurple lipgloss.AdaptiveColor
+	BrightRed    lipgloss.AdaptiveColor
+	BrightWhite  lipgloss.AdaptiveColor
+	BrightYellow lipgloss.AdaptiveColor
+	Black        lipgloss.AdaptiveColor
+	Blue         lipgloss.AdaptiveColor
+	Cyan         lipgloss.AdaptiveColor
+	Green        lipgloss.AdaptiveColor
+	Purple       lipgloss.AdaptiveColor
+	Red          lipgloss.AdaptiveColor
+	White        lipgloss.AdaptiveColor
+	Yellow       lipgloss.AdaptiveColor
 }
 
 type Style struct {
@@ -73,36 +99,15 @@ type Style struct {
 	ButtonInactiveBackground string `yaml:"buttonInactiveBackground"`
 }
 
+const (
+	DefaultDarkTheme  = "tokyo_night"
+	DefaultLightTheme = "tokyo_night_day"
+)
+
 const defaultContents = `
 paths: []
 createSessionKubeConfig: true
-style:
-    borderFgColor: "#414868"
-    focusedColor: "#7aa2f7"
-    foreground: "#bb9af7"
-    title: "#ff9e64"
-    spinner: "#f7768e"
-    filterBorder: "#73daca"
-
-    listNormalTitle: "#bb9af7"
-    listNormalDescription: "#565f89"
-    listNormalSelectedTitle: "#2ac3de"
-    listNormalSelectedDescription: "#9aa5ce"
-    listShadedTitle: "#414868"
-    listShadedDescription: "#414868"
-    listShadedSelectedTitle: "#414868"
-    listShadedSelectedDescription: "#414868"
-
-    contextListNormalTitle: "#7aa2f7"
-    contextListNormalDescription: "#565f89"
-    contextListActiveTitle: "#73daca"
-    contextListActiveDescription: "#7dcfff"
-
-    dialogBorderColor: "#565f89"
-    buttonActiveBackground: "#f7768e"
-    buttonActiveForeground: "#cfc9c2"
-    buttonInactiveForeground: "#a9b1d6"
-    buttonInactiveBackground: "#414868"
+theme: "tokyo_night"
 `
 
 const configFilename = "config.yaml"
@@ -129,11 +134,21 @@ func New() (*Config, error) {
 	return &c, err
 }
 
+func (c *Config) Colours() ColourStyles {
+	return c.colours
+}
+
 // Get the name of the config file being used
 //
 // This returns a full path to the config file on disk
 func (c *Config) GetConfigFile() string {
 	return c.filename
+}
+
+// Save session information
+func (c *Config) SetSessions(sessions []any) error {
+	c.Sessions = sessions
+	return c.writeConfig(c.filename)
 }
 
 func (c *Config) createConfig() error {
@@ -194,7 +209,36 @@ func (c *Config) loadConfig(filename string) error {
 		return err
 	}
 	err = yaml.Unmarshal(content, c)
+	if c.Theme == "" {
+		c.Theme = DefaultDarkTheme
+	}
+	c.setColours()
 	return err
+}
+
+func (c *Config) setColours() {
+	c.colours = ColourStyles{
+		Fg:           lipgloss.AdaptiveColor{Dark: "#a9b1d6", Light: "#343b58"}, // Editor Foreground
+		Bg:           lipgloss.AdaptiveColor{Dark: "#1a1b26", Light: "#e6e7ed"}, // Editor background
+		SelectionBg:  lipgloss.AdaptiveColor{Dark: "#545c7e", Light: "#707280"}, // Focus Border
+		Cursor:       lipgloss.AdaptiveColor{Dark: "#c0caf5", Light: "#343b58"}, // Terminal white
+		BrightBlack:  lipgloss.AdaptiveColor{Dark: "#565f89", Light: "#6c6e75"}, // Comments
+		BrightBlue:   lipgloss.AdaptiveColor{Dark: "#2ac3de", Light: "#2959aa"}, // Function names
+		BrightCyan:   lipgloss.AdaptiveColor{Dark: "#b4f9f8", Light: "#33635c"}, // Regex Literal strings
+		BrightGreen:  lipgloss.AdaptiveColor{Dark: "#9ece6a", Light: "#385f0d"}, // Strings, ClassNames
+		BrightPurple: lipgloss.AdaptiveColor{Dark: "#bb9af7", Light: "#7b43ba"}, // Terminal Magenta
+		BrightRed:    lipgloss.AdaptiveColor{Dark: "#db4b4b", Light: "#942f2f"}, // Error foreground
+		BrightWhite:  lipgloss.AdaptiveColor{Dark: "#cfc9c2", Light: "#634f30"}, // Semantic Highlight
+		BrightYellow: lipgloss.AdaptiveColor{Dark: "#ff9e64", Light: "#965027"}, // Constants
+		Black:        lipgloss.AdaptiveColor{Dark: "#414868", Light: "#343B58"}, // Terminal Black
+		Blue:         lipgloss.AdaptiveColor{Dark: "#7aa2f7", Light: "#2959aa"}, // Terminal Blue
+		Cyan:         lipgloss.AdaptiveColor{Dark: "#7dcfff", Light: "#0f4b6e"}, // Terminal Cyan
+		Green:        lipgloss.AdaptiveColor{Dark: "#73daca", Light: "#33635c"}, // Terminal Green
+		Purple:       lipgloss.AdaptiveColor{Dark: "#9d7cd8", Light: "#5a3e8e"}, // Charts Purple
+		Red:          lipgloss.AdaptiveColor{Dark: "#f7768e", Light: "#8c4351"}, // Terminal Red
+		White:        lipgloss.AdaptiveColor{Dark: "#c0caf5", Light: "#343b58"}, // Terminal white
+		Yellow:       lipgloss.AdaptiveColor{Dark: "#e0af68", Light: "#8f5e15"}, // Terminal Yellow
+	}
 }
 
 func (c *Config) writeConfig(filename string) error {

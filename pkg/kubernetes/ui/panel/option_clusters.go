@@ -17,18 +17,44 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package session
+package panel
 
 import (
-	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/optionlist"
+	"github.com/mproffitt/bmx/pkg/kubernetes"
 )
 
-func (m *model) displayHelp() {
-	entries := make([]dialog.HelpEntry, 0)
-	entries = append(entries, m.Help())
-	if m.config.ManageSessionKubeContext && m.context != nil {
-		entries = append(entries, m.context.(dialog.UseHelp).Help())
-	}
+func (m *Model) getClusterList() (optionlist.Options, error) {
+	return newClusterList()
+}
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+type clusters struct {
+	title    string
+	clusters []string
+}
+
+func newClusterList() (*clusters, error) {
+	n := clusters{
+		title: "Clusters",
+	}
+	var err error
+	n.clusters, err = kubernetes.TeleportClusterList()
+	return &n, err
+}
+
+func (n *clusters) Title() string {
+	return n.title
+}
+
+func (n *clusters) Options() optionlist.Iterator {
+	return func(yield func(key int, val optionlist.Row) bool) {
+		func(yield func(key int, val optionlist.Row) bool) bool {
+			for k, v := range n.clusters {
+				if !yield(k, optionlist.Option{Value: v}) {
+					return false
+				}
+			}
+			return true
+		}(yield)
+	}
 }

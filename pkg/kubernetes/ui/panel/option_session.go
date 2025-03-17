@@ -17,13 +17,41 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package repos
+package panel
 
-import "github.com/mproffitt/bmx/pkg/dialog"
+import (
+	"github.com/mproffitt/bmx/pkg/components/optionlist"
+	"github.com/mproffitt/bmx/pkg/tmux"
+)
 
-func (m *Model) displayHelp() {
-	entries := make([]dialog.HelpEntry, 0)
-	entries = append(entries, m.Help())
+func (m *Model) getSessionList() (optionlist.Options, error) {
+	return newSessionList(), nil
+}
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+type sessions struct {
+	title string
+}
+
+func newSessionList() *sessions {
+	n := sessions{
+		title: "Sessions",
+	}
+	return &n
+}
+
+func (n *sessions) Title() string {
+	return n.title
+}
+
+func (n *sessions) Options() optionlist.Iterator {
+	return func(yield func(key int, val optionlist.Row) bool) {
+		func(yield func(key int, val optionlist.Row) bool) bool {
+			for k, v := range tmux.ListSessions() {
+				if !yield(k, optionlist.Option{Value: v}) {
+					return false
+				}
+			}
+			return true
+		}(yield)
+	}
 }

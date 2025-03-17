@@ -37,7 +37,6 @@ type configModel struct {
 	tabContent []string
 	activeTab  int
 	mainform   tea.Model
-	stylesform tea.Model
 	styles     configModelStyles
 }
 
@@ -61,15 +60,13 @@ type configModelStyles struct {
 // Although the primary config is fairly basic, this helps
 // guide users in its creation.
 func NewConfigModel(c *Config) *configModel {
-	highlight := lipgloss.Color(c.Style.FocusedColor)
+	highlight := c.Colours().Cyan
 	m := configModel{
 		config: c,
 		tabs: []string{
 			tabMainForm,
-			tabStylesForm,
 		},
-		mainform:   NewMainModel(c),
-		stylesform: NewStylesModel(c),
+		mainform: NewMainModel(c),
 		styles: configModelStyles{
 			docStyle: lipgloss.NewStyle().Padding(1, 2, 1, 2),
 			windowStyle: lipgloss.NewStyle().
@@ -125,7 +122,7 @@ func NewConfigModel(c *Config) *configModel {
 
 // Initialise the model and forms
 func (c *configModel) Init() tea.Cmd {
-	return tea.Batch(c.mainform.Init(), c.stylesform.Init())
+	return tea.Batch(c.mainform.Init())
 }
 
 // Recieve and process updates from the application
@@ -135,8 +132,6 @@ func (c *configModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch c.tabs[c.activeTab] {
 	case tabMainForm:
 		c.mainform, cmd = c.mainform.Update(msg)
-	case tabStylesForm:
-		c.stylesform, cmd = c.stylesform.Update(msg)
 	}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -195,13 +190,8 @@ func (c *configModel) createTabContents() {
 	c.tabContent = make([]string, len(c.tabs))
 
 	c.tabContent[0] = c.makeMainTab()
-	c.tabContent[1] = c.makeStylesTab()
 }
 
 func (c *configModel) makeMainTab() string {
 	return c.mainform.View()
-}
-
-func (c *configModel) makeStylesTab() string {
-	return c.stylesform.View()
 }
