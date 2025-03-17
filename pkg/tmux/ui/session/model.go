@@ -42,7 +42,7 @@ type Session struct {
 	Name       string
 	NumWindows int
 	Path       string
-	Windows    []window.Window
+	Windows    []*window.Window
 
 	colours    *config.ColourStyles
 	kubeconfig string
@@ -70,7 +70,7 @@ func New(session string, c *config.ColourStyles) Session {
 		}
 		details.Created = time.Unix(t, 0)
 	}
-	details.Windows = window.ListWindows(details.Name, c)
+	details.Windows = window.ListWindows(details.Name)
 	return details
 }
 
@@ -94,17 +94,17 @@ func (s Session) FilterValue() string { return s.Name }
 // Marshal an individual session
 func (s Session) MarshalYAML() (any, error) {
 	raw := struct {
-		Name       string          `yaml:"name"`
-		KubeConfig string          `yaml:"kubeconfig"`
-		Command    string          `yaml:"command,omitempty"`
-		Path       string          `yaml:"path"`
-		Windows    []window.Window `yaml:"windows"`
+		Name       string           `yaml:"name"`
+		KubeConfig string           `yaml:"kubeconfig"`
+		Command    string           `yaml:"command,omitempty"`
+		Path       string           `yaml:"path"`
+		Windows    []*window.Window `yaml:"windows"`
 	}{
 		Name:       s.Name,
 		KubeConfig: s.kubeconfig,
 		Command:    s.command,
 		Path:       s.Path,
-		Windows:    make([]window.Window, 0),
+		Windows:    make([]*window.Window, 0),
 	}
 	raw.Windows = append(raw.Windows, s.Windows...)
 	return raw, nil
@@ -113,4 +113,13 @@ func (s Session) MarshalYAML() (any, error) {
 // Get the session title
 func (s Session) Title() string {
 	return s.Name
+}
+
+func (s Session) Window(index uint64) *window.Window {
+	for i, w := range s.Windows {
+		if w.Index == index {
+			return s.Windows[i]
+		}
+	}
+	return nil
 }

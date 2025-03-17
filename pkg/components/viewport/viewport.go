@@ -118,9 +118,21 @@ func (m *Model) GetSize() (int, int) {
 	return m.width, m.height
 }
 
+func (m *Model) GetDrawableSize() (int, int) {
+	switch m.titlePosition {
+	case Inline:
+		return m.width - 2, m.height - 4
+	case Border:
+		return m.width - 2, m.height - 2
+	case None:
+		return m.width - 2, m.height
+	}
+	return 0, 0
+}
+
 func (m *Model) View() string {
 	if m.width == 0 {
-		return "bob"
+		return ""
 	}
 
 	borderColour := m.colours.Black
@@ -141,34 +153,25 @@ func (m *Model) View() string {
 	}
 
 	m.viewport.SetContent(m.Content)
-	m.viewport.Width = m.width - 2
-	m.viewport.Height = m.height
+	m.viewport.Width, m.viewport.Height = m.GetDrawableSize()
 
 	var content string
 	{
-		switch m.titlePosition {
-		case Inline:
-			m.viewport.Height = m.height - 4
-			content = m.viewport.View()
-			content = lipgloss.JoinVertical(lipgloss.Top, title, content)
-			content = lipgloss.NewStyle().
-				Border(m.borderStyle, true).
-				BorderForeground(borderColour).
-				Render(content)
+		style := lipgloss.NewStyle().
+			Border(m.borderStyle, true).
+			BorderForeground(borderColour)
 
+		content = m.viewport.View()
+		switch m.titlePosition {
 		case Border:
-			m.viewport.Height = m.height - 2
-			content = m.viewport.View()
-			content = lipgloss.NewStyle().
-				Border(m.borderStyle, true).
-				BorderForeground(borderColour).
-				Render(content)
+			content = style.Render(content)
 			content = overlay.PlaceOverlay(2, 0, title, content, false)
+
+		case Inline:
+			content = lipgloss.JoinVertical(lipgloss.Top, title, content)
+			fallthrough
 		case None:
-			content = lipgloss.NewStyle().
-				Border(m.borderStyle, true).
-				BorderForeground(borderColour).
-				Render(m.viewport.View())
+			content = style.Render(content)
 		}
 	}
 	return content

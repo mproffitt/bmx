@@ -21,7 +21,6 @@ package window
 
 import (
 	"fmt"
-	"slices"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
@@ -45,7 +44,7 @@ const (
 )
 
 type Node struct {
-	Children     []Node
+	Children     []*Node
 	Height       int
 	Index        uint
 	PaneID       *int
@@ -57,6 +56,8 @@ type Node struct {
 	celltype     CellType
 	position     int
 	viewport     viewport.Model
+	session      string
+	window       int
 }
 
 // Finds the pane with the given ID
@@ -104,6 +105,14 @@ func (n *Node) GetCommand(pid int32) string {
 	return cmd
 }
 
+func (n *Node) SetSessionName(session string) {
+	n.session = session
+}
+
+func (n *Node) SetWindowIndex(window int) {
+	n.window = window
+}
+
 // Get the list of all pane commands running in this window
 func (n *Node) GetCommands() []string {
 	commands := make([]string, 0)
@@ -136,7 +145,7 @@ func (n *Node) Resize(newWidth, newHeight, originalWidth, originalHeight int) *N
 	n.Height = int(float64(n.Height) * scaleY)
 
 	for i := range n.Children {
-		n.Children[i].Resize(newWidth, newHeight, originalWidth, originalHeight)
+		n.Children[i] = n.Children[i].Resize(newWidth, newHeight, originalWidth, originalHeight)
 	}
 	return n
 }
@@ -145,12 +154,12 @@ func (n *Node) Resize(newWidth, newHeight, originalWidth, originalHeight int) *N
 func (n *Node) View(position int, isCol bool) string {
 	if n.HasChildren() {
 		layout := make([]string, 0)
-		for i, v := range n.Children {
+		for i, child := range n.Children {
 			celltype := CellTypeRow
 			if n.Type == Column {
 				celltype = CellTypeCol
 			}
-			layout = append(layout, v.WithBorderColour(n.bordercolour).
+			layout = append(layout, child.WithBorderColour(n.bordercolour).
 				WithCellType(celltype).
 				WithPosition(i).
 				View(i, n.Type == Column))
@@ -167,11 +176,11 @@ func (n *Node) View(position int, isCol bool) string {
 		contents := n.GetContents()
 		n.viewport.SetContent(contents)
 
-		sessionPane := fmt.Sprintf("%%%d", *n.PaneID)
+		/*sessionPane := fmt.Sprintf("%%%d", *n.PaneID)
 		cmd := tmux.PaneCurrentCommand(sessionPane)
 		if slices.Contains(tmux.CommonShells, cmd) {
 			_ = n.viewport.GotoBottom()
-		}
+		}*/
 		if position == 0 {
 			return n.viewport.View()
 		}
@@ -180,7 +189,7 @@ func (n *Node) View(position int, isCol bool) string {
 				BorderForeground(n.bordercolour).Render(n.viewport.View())
 		}
 		return lipgloss.NewStyle().BorderForeground(n.bordercolour).
-			Border(lipgloss.RoundedBorder(), true, false, false, false).Render(n.viewport.View())
+			Border(lipgloss.RoundedBorder(), true, false, true, false).Render(n.viewport.View())
 	}
 	return ""
 }

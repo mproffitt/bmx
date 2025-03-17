@@ -55,8 +55,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.list.Select(int((*m.session).Index))
 	case windowManager:
-		if selected, ok := m.list.SelectedItem().(tmuxui.Window); ok {
-			m.window = &selected
+		if selected, ok := m.list.SelectedItem().(*tmuxui.Window); ok {
+			m.window = selected
 		}
 	}
 

@@ -216,13 +216,6 @@ func (m *model) setItems() {
 
 func (m *model) setSessionItems() {
 	sessions := m.manager.Items()
-	/*sort.SliceStable(sessions, func(i, j int) bool {
-		if sessions[i].Attached != sessions[j].Attached {
-			return sessions[i].Attached
-		}
-		return sessions[i].Name < sessions[j].Name
-	})*/
-
 	items := make([]list.Item, len(sessions))
 	for i, s := range sessions {
 		s.Index = uint(i)
@@ -237,8 +230,7 @@ func (m *model) setSessionItems() {
 }
 
 func (m *model) setWindowsItems(session string) {
-	colours := m.config.Colours()
-	windows := tmuxui.ListWindows(session, &colours)
+	windows := tmuxui.ListWindows(session)
 	items := make([]list.Item, len(windows))
 	for i, w := range windows {
 		items[i] = w

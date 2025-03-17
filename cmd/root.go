@@ -24,6 +24,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/spf13/cobra"
@@ -49,6 +50,17 @@ session`, executable),
 }
 
 func Execute() {
+	if len(os.Getenv("DEBUG")) > 0 {
+		f, err := tea.LogToFile("debug.log", "debug")
+		if err != nil {
+			fmt.Println("fatal:", err)
+			os.Exit(1)
+		}
+		defer f.Close()
+		log.SetLevel(log.DebugLevel)
+		log.SetOutput(f)
+	}
+
 	var err error
 	tmsConfig, err = config.New()
 	if err != nil {

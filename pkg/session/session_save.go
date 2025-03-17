@@ -21,11 +21,18 @@ package session
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/helpers"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
 )
 
 func (m *model) save() tea.Cmd {
-	sessions := unpackArray(m.manager.Items())
+	log.Debug("triggering save")
+	s := make([]session.Session, 0)
+	for _, v := range m.manager.Items() {
+		s = append(s, *v)
+	}
+	sessions := unpackArray(s)
 	err := m.config.SetSessions(sessions)
 	if err != nil {
 		return helpers.NewErrorCmd(err)

@@ -44,12 +44,11 @@ func (m *model) View() string {
 			m.session = selected
 		}
 	case windowManager:
-		if selected, ok := m.list.SelectedItem().(tmuxui.Window); ok {
-			m.window = &selected
+		if selected, ok := m.list.SelectedItem().(*tmuxui.Window); ok {
+			m.window = selected
 			index = uint64(m.window.Index)
 		}
 	}
-	m.makePreview(m.session.Name, index, m.lastch)
 
 	if m.config.ManageSessionKubeContext && m.context != nil {
 		m.context = m.context.(*panel.Model).UpdateContextList(
@@ -68,6 +67,7 @@ func (m *model) View() string {
 
 	title := fmt.Sprintf("Preview : %s:%d", m.session.Name, index)
 	m.preview.SetTitle(title, viewport.Inline)
+	m.makePreview(m.session.Name, index, m.lastch)
 
 	right := strings.Builder{}
 	{
@@ -115,38 +115,32 @@ func (m *model) makePreview(session string, window uint64, pane uint) {
 	if pane >= uint(len(panes)) {
 		return
 	}
-	w, _ := m.preview.GetSize()
-	preview, err = tmux.CapturePane(panes[pane], w-2)
-	if err != nil {
-		m.preview.SetContent(err.Error())
-		return
+
+	preview = m.makeZoomedOut(session, window)
+
+	if m.zoomed {
+		w, _ := m.preview.GetSize()
+		preview, err = tmux.CapturePane(panes[pane], w-2)
+		if err != nil {
+			m.preview.SetContent(err.Error())
+			return
+		}
 	}
 
-	if !m.zoomed {
-		preview = m.makeZoomedOut(session, window)
-	}
 	m.preview = m.preview.SetContent(preview)
 }
 
-func (m *model) makeZoomedOut(session string, window uint64) string {
-	windows, err := tmuxui.SessionWindows(session)
-	if err != nil {
-		return err.Error()
-	}
-	layout, err := tmuxui.NewLayout(windows[window-1])
-	if err != nil {
-		return err.Error()
-	}
-
-	colour := m.styles.viewportNormal.GetBorderTopForeground()
+func (m *model) makeZoomedOut(session string, windowIndex uint64) string {
+	window := m.manager.Session(session).Window(windowIndex)
+	colour := m.config.Colours().Black
 	if m.focused == previewPane {
-		colour = m.styles.viewportFocused.GetBorderTopForeground()
+		colour = m.config.Colours().Blue
 	}
 
-	w, h := m.preview.GetSize()
-	layout.Resize(w-2, h).
+	w, h := m.preview.GetDrawableSize()
+	window = window.Resize(w, h).
 		WithBorderColour(colour)
-	return layout.View()
+	return window.View()
 }
 
 func (m *model) resize() {

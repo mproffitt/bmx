@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/tmux"
 )
 
@@ -89,9 +89,14 @@ type Window struct {
 	Name      string
 	PaneCount uint64
 	Session   string
-	Layout    *Layout
 
-	colours *config.ColourStyles
+	checksum string
+	root     *Node
+	layout   string
+
+	bordercol lipgloss.AdaptiveColor
+	// colours  *config.ColourStyles
+	commands []string
 }
 
 // Styles for window flag icons
@@ -105,9 +110,15 @@ type WindowStyles struct {
 	Zoomed        lipgloss.Style
 }
 
-func new(session string, c *config.ColourStyles) Window {
+func new(session, attrStr string) *Window {
+	attributes := strings.Split(attrStr, ",")
 	w := Window{
 		Session: session,
+
+		Active:  attributes[3] != "0",
+		Command: "",
+		Name:    attributes[2],
+
 		Flags: map[Flag]bool{
 			Activity:      false,
 			Bell:          false,
@@ -117,12 +128,23 @@ func new(session string, c *config.ColourStyles) Window {
 			Silence:       false,
 			Zoomed:        false,
 		},
-		colours: c,
+		bordercol: lipgloss.AdaptiveColor{Dark: "#ffffff", Light: "#000000"},
 	}
-	return w
+	w.Index, _ = strconv.ParseUint(attributes[0], 10, 8)
+	for _, f := range []Flag(attributes[1]) {
+		w.Flags[f] = true
+	}
+	w.PaneCount, _ = strconv.ParseUint(attributes[4], 10, 8)
+	w.layout, _ = tmux.WindowLayout(fmt.Sprintf("%s:%d", w.Session, w.Index))
+	if _, err := w.parse(w.layout); err != nil {
+		log.Debug("error parsing layout ", w.layout)
+		return nil
+	}
+	w.findCommandStrings()
+	return &w
 }
 
-func (w Window) HasFlag(flag Flag) bool {
+func (w *Window) HasFlag(flag Flag) bool {
 	v, ok := w.Flags[flag]
 	if !ok {
 		return false
@@ -130,20 +152,20 @@ func (w Window) HasFlag(flag Flag) bool {
 	return v
 }
 
-func (w Window) MarshalYAML() (any, error) {
+func (w *Window) MarshalYAML() (any, error) {
 	raw := struct {
 		Name     string   `yaml:"name"`
 		Layout   string   `yaml:"layout"`
 		Commands []string `yaml:"commands"`
 	}{
 		Name:     w.Name,
-		Layout:   w.Layout.Layout,
-		Commands: w.Layout.Commands,
+		Layout:   w.layout,
+		Commands: w.commands,
 	}
 	return raw, nil
 }
 
-func (w Window) Rename(newname string) error {
+func (w *Window) Rename(newname string) error {
 	err := tmux.ExecSilent([]string{
 		"rename-window", "-t",
 		fmt.Sprintf("%s:%d", w.Session, w.Index),
@@ -152,11 +174,11 @@ func (w Window) Rename(newname string) error {
 	return err
 }
 
-func (w Window) Title() string {
+func (w *Window) Title() string {
 	return w.Name
 }
 
-func (w Window) Description() string {
+func (w *Window) Description() string {
 	message := ""
 	current := TerminalIcon
 	if w.Flags[CurrentWindow] {
@@ -186,13 +208,13 @@ func (w Window) Description() string {
 	return message + " " + getPanesCountAsIcons(w.PaneCount)
 }
 
-func (w Window) FilterValue() string {
+func (w *Window) FilterValue() string {
 	return w.Name
 }
 
 // List all windows in a given session
-func ListWindows(session string, colours *config.ColourStyles) []Window {
-	windows := make([]Window, 0)
+func ListWindows(session string) []*Window {
+	windows := make([]*Window, 0)
 
 	args := []string{
 		"list-windows", "-t", session, "-F",
@@ -204,22 +226,7 @@ func ListWindows(session string, colours *config.ColourStyles) []Window {
 		return windows
 	}
 	for _, line := range strings.Split(out, "\n") {
-		window := new(session, colours)
-		attributes := strings.Split(line, ",")
-		window.Active = attributes[3] == "1"
-		window.Command = ""
-		window.Index, _ = strconv.ParseUint(attributes[0], 10, 8)
-		for _, f := range []Flag(attributes[1]) {
-			window.Flags[f] = true
-		}
-		window.Name = attributes[2]
-		window.PaneCount, _ = strconv.ParseUint(attributes[4], 10, 8)
-		window.Session = session
-		window.Layout, err = NewLayout(fmt.Sprintf("%s:%d", session, window.Index))
-		if err != nil {
-			continue
-		}
-
+		window := new(session, line)
 		windows = append(windows, window)
 	}
 

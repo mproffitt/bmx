@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/charmbracelet/log"
 )
 
 type BmxExecError struct {
@@ -60,6 +62,7 @@ func (t *BmxExecError) Error() string {
 }
 
 func Exec(command string, args []string) (string, string, error) {
+	log.Debug(command + " " + strings.Join(args, " "))
 	cmd := exec.Command(command, args...)
 	var stdout strings.Builder
 	var stderr strings.Builder

@@ -71,7 +71,7 @@ func New() (*Model, Iterator) {
 }
 
 // Get the session with the given name
-func (m *Model) Get(name string) *session.Session {
+func (m *Model) Session(name string) *session.Session {
 	for _, session := range m.sessions {
 		if session.Name == name {
 			return session
