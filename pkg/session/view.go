@@ -26,6 +26,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/components/overlay"
 	"github.com/mproffitt/bmx/pkg/components/viewport"
@@ -66,6 +67,14 @@ func (m *model) View() string {
 	}
 
 	title := fmt.Sprintf("Preview : %s:%d", m.session.Name, index)
+	if m.zoomed {
+		lastpane := m.lastch
+		maxPanes := m.manager.Session(m.session.Name).Window(index).Len() - 1
+		if int(m.lastch) >= maxPanes {
+			lastpane = uint(maxPanes)
+		}
+		title = fmt.Sprintf("Preview : %s:%d.%d", m.session.Name, index, lastpane+1)
+	}
 	m.preview.SetTitle(title, viewport.Inline)
 	m.makePreview(m.session.Name, index, m.lastch)
 
@@ -137,7 +146,9 @@ func (m *model) makeZoomedOut(session string, windowIndex uint64) string {
 		colour = m.config.Colours().Blue
 	}
 
+	w0, h0 := m.preview.GetSize()
 	w, h := m.preview.GetDrawableSize()
+	log.Debug("preview size(s)", w0, w, h0, h)
 	window = window.Resize(w, h).
 		WithBorderColour(colour)
 	return window.View()

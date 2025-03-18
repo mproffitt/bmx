@@ -1,0 +1,98 @@
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-sessions -F #{session_name},#{session_windows},#{session_created},#{session_attached},#{session_group},#{session_path}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-windows -t bubbletea -F #{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t bubbletea:1 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %17 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %27 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %40 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t bubbletea:2 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-windows -t circleci-exporter -F #{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t circleci-exporter:1 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-windows -t default -F #{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t default:1 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %3 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %4 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %43 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t default:2 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %5 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %35 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %36 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %6 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t default:3 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %7 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -t %8 -p #{pane_pid}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t default:4 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-windows -t giantswarm-management-clusters -F #{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t giantswarm-management-clusters:1 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-windows -t test -F #{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t test:1 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-windows -t workload-clusters-fleet -F #{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux display-message -p -t workload-clusters-fleet:1 #{window_layout}
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-panes -t default:1 -F #{pane_id}
+2025/03/18 07:53:44 DEBU preview size(s) 0=-2 0=-4
+2025/03/18 07:53:44 DEBU /usr/bin/tmux capture-pane -ep -t %3
+2025/03/18 07:53:44 DEBU /usr/bin/tmux capture-pane -ep -t %4
+2025/03/18 07:53:44 DEBU /usr/bin/tmux capture-pane -ep -t %43
+2025/03/18 07:53:44 DEBU /usr/bin/tmux show-environment -t default KUBECONFIG
+2025/03/18 07:53:44 DEBU /usr/bin/tmux list-panes -t default:1 -F #{pane_id}
+2025/03/18 07:53:44 DEBU preview size(s) 89=87 23=19
+2025/03/18 07:53:44 DEBU resize 235=81 61=34
+2025/03/18 07:53:44 DEBU scaled 0=0 0=0 235=81 61=34 scalingX=0.3446808510638298 scalingY=0.5573770491803278
+2025/03/18 07:53:44 DEBU resize 235=81 61=34
+2025/03/18 07:53:44 DEBU scaled 0=0 0=0 235=81 27=15 scalingX=0.3446808510638298 scalingY=0.5573770491803278
+2025/03/18 07:53:44 DEBU resize 235=81 61=34
+2025/03/18 07:53:44 DEBU scaled 0=0 28=15 235=81 33=18 scalingX=0.3446808510638298 scalingY=0.5573770491803278
+2025/03/18 07:53:44 DEBU resize 235=81 61=34
+2025/03/18 07:53:44 DEBU scaled 0=0 28=15 117=40 33=18 scalingX=0.3446808510638298 scalingY=0.5573770491803278
+2025/03/18 07:53:44 DEBU resize 235=81 61=34
+2025/03/18 07:53:44 DEBU scaled 118=40 28=15 117=40 33=18 scalingX=0.3446808510638298 scalingY=0.5573770491803278
+2025/03/18 07:53:44 DEBU /usr/bin/tmux capture-pane -ep -t %3
+2025/03/18 07:53:44 DEBU /usr/bin/tmux capture-pane -ep -t %4
+2025/03/18 07:53:44 DEBU /usr/bin/tmux capture-pane -ep -t %43
+2025/03/18 07:53:52 DEBU /usr/bin/tmux show-environment -t default KUBECONFIG
+2025/03/18 07:53:52 DEBU /usr/bin/tmux list-panes -t default:1 -F #{pane_id}
+2025/03/18 07:53:52 DEBU preview size(s) 207=205 40=36
+2025/03/18 07:53:52 DEBU resize 81=199 34=68
+2025/03/18 07:53:52 DEBU scaled 0=0 0=0 81=198 34=68 scalingX=2.45679012345679 scalingY=2
+2025/03/18 07:53:52 DEBU resize 81=199 34=68
+2025/03/18 07:53:52 DEBU scaled 0=0 0=0 81=198 15=30 scalingX=2.45679012345679 scalingY=2
+2025/03/18 07:53:52 DEBU resize 81=199 34=68
+2025/03/18 07:53:52 DEBU scaled 0=0 15=30 81=198 18=36 scalingX=2.45679012345679 scalingY=2
+2025/03/18 07:53:52 DEBU resize 81=199 34=68
+2025/03/18 07:53:52 DEBU scaled 0=0 15=30 40=98 18=36 scalingX=2.45679012345679 scalingY=2
+2025/03/18 07:53:52 DEBU resize 81=199 34=68
+2025/03/18 07:53:52 DEBU scaled 40=98 15=30 40=98 18=36 scalingX=2.45679012345679 scalingY=2
+2025/03/18 07:53:52 DEBU /usr/bin/tmux capture-pane -ep -t %3
+2025/03/18 07:53:52 DEBU /usr/bin/tmux capture-pane -ep -t %4
+2025/03/18 07:53:52 DEBU /usr/bin/tmux capture-pane -ep -t %43
+2025/03/18 07:53:56 DEBU /usr/bin/tmux show-environment -t default KUBECONFIG
+2025/03/18 07:53:56 DEBU /usr/bin/tmux list-panes -t default:1 -F #{pane_id}
+2025/03/18 07:53:56 DEBU preview size(s) 207=205 40=36
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 0=0 198=198 68=68 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 0=0 198=198 30=30 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 30=30 198=198 36=36 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 30=30 98=98 36=36 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 98=98 30=30 98=98 36=36 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU /usr/bin/tmux capture-pane -ep -t %3
+2025/03/18 07:53:56 DEBU /usr/bin/tmux capture-pane -ep -t %4
+2025/03/18 07:53:56 DEBU /usr/bin/tmux capture-pane -ep -t %43
+2025/03/18 07:53:56 DEBU /usr/bin/tmux show-environment -t default KUBECONFIG
+2025/03/18 07:53:56 DEBU /usr/bin/tmux list-panes -t default:1 -F #{pane_id}
+2025/03/18 07:53:56 DEBU preview size(s) 207=205 40=36
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 0=0 198=198 68=68 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 0=0 198=198 30=30 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 30=30 198=198 36=36 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 0=0 30=30 98=98 36=36 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU resize 198=199 68=68
+2025/03/18 07:53:56 DEBU scaled 98=98 30=30 98=98 36=36 scalingX=1.005050505050505 scalingY=1
+2025/03/18 07:53:56 DEBU /usr/bin/tmux capture-pane -ep -t %3
+2025/03/18 07:53:56 DEBU /usr/bin/tmux capture-pane -ep -t %4
+2025/03/18 07:53:56 DEBU /usr/bin/tmux capture-pane -ep -t %43

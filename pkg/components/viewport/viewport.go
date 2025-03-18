@@ -124,10 +124,8 @@ func (m *Model) GetDrawableSize() (int, int) {
 		return m.width - 2, m.height - 4
 	case Border:
 		return m.width - 2, m.height - 2
-	case None:
-		return m.width - 2, m.height
 	}
-	return 0, 0
+	return m.width - 2, m.height
 }
 
 func (m *Model) View() string {
@@ -168,7 +166,7 @@ func (m *Model) View() string {
 			content = overlay.PlaceOverlay(2, 0, title, content, false)
 
 		case Inline:
-			content = lipgloss.JoinVertical(lipgloss.Top, title, content)
+			content = lipgloss.JoinVertical(lipgloss.Left, title, content)
 			fallthrough
 		case None:
 			content = style.Render(content)

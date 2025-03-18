@@ -152,6 +152,10 @@ func (w *Window) HasFlag(flag Flag) bool {
 	return v
 }
 
+func (w *Window) Len() int {
+	return w.root.Len()
+}
+
 func (w *Window) MarshalYAML() (any, error) {
 	raw := struct {
 		Name     string   `yaml:"name"`

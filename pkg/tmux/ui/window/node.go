@@ -21,10 +21,14 @@ package window
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/tmux"
+	"github.com/muesli/reflow/padding"
+	"github.com/muesli/reflow/truncate"
 	"github.com/shirou/gopsutil/v4/process"
 )
 
@@ -88,6 +92,21 @@ func (n *Node) GetContents() string {
 		}
 	}
 
+	if n.Width > 0 {
+		newlines := make([]string, 0)
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			if len(line) < n.Width {
+				line = padding.String(line, uint(n.Width))
+			}
+			if len(line) >= n.Width {
+				line = truncate.String(line, uint(n.Width))
+			}
+			newlines = append(newlines, line)
+		}
+		content = strings.Join(newlines, "\n")
+	}
+
 	return content
 }
 
@@ -134,15 +153,33 @@ func (n *Node) HasChildren() bool {
 	return len(n.Children) != 0
 }
 
+func (n *Node) Len() int {
+	if n.HasChildren() {
+		l := 0
+		for _, i := range n.Children {
+			l += i.Len()
+		}
+		return l
+	}
+	return 1
+}
+
 // Visual resize of the pane or all panes in window
 func (n *Node) Resize(newWidth, newHeight, originalWidth, originalHeight int) *Node {
+	if newWidth <= 0 || newHeight <= 0 {
+		return n
+	}
+	log.Debug("resize", originalWidth, newWidth, originalHeight, newHeight)
 	scaleX := float64(newWidth) / float64(originalWidth)
 	scaleY := float64(newHeight) / float64(originalHeight)
 
+	oX, oY, oW, oH := n.X, n.Y, n.Width, n.Height
 	n.X = int(float64(n.X) * scaleX)
 	n.Y = int(float64(n.Y) * scaleY)
 	n.Width = int(float64(n.Width) * scaleX)
 	n.Height = int(float64(n.Height) * scaleY)
+
+	log.Debug("scaled", oX, n.X, oY, n.Y, oW, n.Width, oH, n.Height, "scalingX", scaleX, "scalingY", scaleY)
 
 	for i := range n.Children {
 		n.Children[i] = n.Children[i].Resize(newWidth, newHeight, originalWidth, originalHeight)
@@ -171,27 +208,32 @@ func (n *Node) View(position int, isCol bool) string {
 			return lipgloss.JoinHorizontal(lipgloss.Top, layout...)
 		}
 	}
-	if n.PaneID != nil {
-		n.viewport = viewport.New(n.Width, n.Height)
-		contents := n.GetContents()
-		n.viewport.SetContent(contents)
-
-		/*sessionPane := fmt.Sprintf("%%%d", *n.PaneID)
-		cmd := tmux.PaneCurrentCommand(sessionPane)
-		if slices.Contains(tmux.CommonShells, cmd) {
-			_ = n.viewport.GotoBottom()
-		}*/
-		if position == 0 {
-			return n.viewport.View()
-		}
-		if isCol {
-			return lipgloss.NewStyle().Border(lipgloss.RoundedBorder(), false, false, false, true).
-				BorderForeground(n.bordercolour).Render(n.viewport.View())
-		}
-		return lipgloss.NewStyle().BorderForeground(n.bordercolour).
-			Border(lipgloss.RoundedBorder(), true, false, true, false).Render(n.viewport.View())
+	if n.PaneID == nil {
+		return ""
 	}
-	return ""
+	n.viewport = viewport.New(n.Width, n.Height)
+	contents := n.GetContents()
+	n.viewport.SetContent(contents)
+
+	/*sessionPane := fmt.Sprintf("%%%d", *n.PaneID)
+	cmd := tmux.PaneCurrentCommand(sessionPane)
+	if slices.Contains(tmux.CommonShells, cmd) {
+		_ = n.viewport.GotoBottom()
+	}*/
+	if position == 0 {
+		return n.viewport.View()
+	}
+	if isCol {
+		return lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(n.bordercolour).
+			Render(n.viewport.View())
+	}
+
+	return lipgloss.NewStyle().
+		Border(lipgloss.NormalBorder(), true, false, false, false).
+		BorderForeground(n.bordercolour).
+		Render(n.viewport.View())
 }
 
 // Use the given colour for border separation

@@ -53,7 +53,7 @@ func (w *Window) View() string {
 // Note. This is for display. It does not resize
 // the actual TMUX panes
 func (w *Window) Resize(width, height int) *Window {
-	w.root = w.root.Resize(width, height-4, w.root.Width, w.root.Height)
+	w.root = w.root.Resize(width, height, w.root.Width, w.root.Height)
 	return w
 }
 
