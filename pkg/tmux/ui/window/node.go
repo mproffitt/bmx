@@ -196,11 +196,29 @@ func (n *Node) View(position int, isCol bool) string {
 			if n.Type == Column {
 				celltype = CellTypeCol
 			}
-			layout = append(layout, child.WithBorderColour(n.bordercolour).
+
+			content := child.WithBorderColour(n.bordercolour).
 				WithCellType(celltype).
 				WithPosition(i).
-				View(i, n.Type == Column))
+				View(i, n.Type == Column)
+
+			if i > 0 {
+				switch n.Type {
+				case Column:
+					content = lipgloss.NewStyle().
+						Border(lipgloss.NormalBorder(), false, false, false, true).
+						BorderForeground(n.bordercolour).
+						Render(content)
+				case Row:
+					content = lipgloss.NewStyle().
+						Border(lipgloss.NormalBorder(), true, false, false, false).
+						BorderForeground(n.bordercolour).
+						Render(content)
+				}
+			}
+			layout = append(layout, content)
 		}
+
 		switch n.Type {
 		case Row:
 			return lipgloss.JoinVertical(lipgloss.Left, layout...)
@@ -208,6 +226,7 @@ func (n *Node) View(position int, isCol bool) string {
 			return lipgloss.JoinHorizontal(lipgloss.Top, layout...)
 		}
 	}
+
 	if n.PaneID == nil {
 		return ""
 	}
@@ -220,20 +239,7 @@ func (n *Node) View(position int, isCol bool) string {
 	if slices.Contains(tmux.CommonShells, cmd) {
 		_ = n.viewport.GotoBottom()
 	}*/
-	if position == 0 {
-		return n.viewport.View()
-	}
-	if isCol {
-		return lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(n.bordercolour).
-			Render(n.viewport.View())
-	}
-
-	return lipgloss.NewStyle().
-		Border(lipgloss.NormalBorder(), true, false, false, false).
-		BorderForeground(n.bordercolour).
-		Render(n.viewport.View())
+	return n.viewport.View()
 }
 
 // Use the given colour for border separation
