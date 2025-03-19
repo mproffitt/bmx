@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
@@ -95,8 +96,6 @@ type Window struct {
 	layout   string
 
 	bordercol lipgloss.AdaptiveColor
-	// colours  *config.ColourStyles
-	commands []string
 }
 
 // Styles for window flag icons
@@ -140,7 +139,6 @@ func new(session, attrStr string) *Window {
 		log.Debug("error parsing layout ", w.layout)
 		return nil
 	}
-	w.findCommandStrings()
 	return &w
 }
 
@@ -158,13 +156,13 @@ func (w *Window) Len() int {
 
 func (w *Window) MarshalYAML() (any, error) {
 	raw := struct {
-		Name     string   `yaml:"name"`
-		Layout   string   `yaml:"layout"`
-		Commands []string `yaml:"commands"`
+		Name   string     `yaml:"name"`
+		Layout string     `yaml:"layout"`
+		Panes  []*Details `yaml:"panes"`
 	}{
-		Name:     w.Name,
-		Layout:   w.layout,
-		Commands: w.commands,
+		Name:   w.Name,
+		Layout: w.layout,
+		Panes:  w.getPaneDetails(),
 	}
 	return raw, nil
 }
@@ -220,6 +218,7 @@ func (w *Window) FilterValue() string {
 func ListWindows(session string) []*Window {
 	windows := make([]*Window, 0)
 
+	var l sync.Mutex
 	args := []string{
 		"list-windows", "-t", session, "-F",
 		"#{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}",
@@ -229,23 +228,24 @@ func ListWindows(session string) []*Window {
 	if err != nil {
 		return windows
 	}
+
+	var wg sync.WaitGroup
 	for _, line := range strings.Split(out, "\n") {
-		window := new(session, line)
-		windows = append(windows, window)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			window := new(session, line)
+
+			l.Lock()
+			windows = append(windows, window)
+			l.Unlock()
+		}()
 	}
+	wg.Wait()
 
 	return windows
 }
 
-// Get a list of session windows names
-func SessionWindows(session string) ([]string, error) {
-	args := []string{
-		"list-windows", "-t", session, "-F", "#S:#I",
-	}
-	out, _, err := tmux.Exec(args)
-	if err != nil {
-		return []string{}, err
-	}
-
-	return strings.Split(out, "\n"), nil
+func (w *Window) getPaneDetails() []*Details {
+	return w.root.GetDetails()
 }

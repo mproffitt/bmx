@@ -20,6 +20,8 @@
 package panel
 
 import (
+	"strings"
+
 	"github.com/mproffitt/bmx/pkg/components/optionlist"
 	"github.com/mproffitt/bmx/pkg/tmux"
 )
@@ -47,7 +49,7 @@ func (n *sessions) Options() optionlist.Iterator {
 	return func(yield func(key int, val optionlist.Row) bool) {
 		func(yield func(key int, val optionlist.Row) bool) bool {
 			for k, v := range tmux.ListSessions() {
-				if !yield(k, optionlist.Option{Value: v}) {
+				if !yield(k, optionlist.Option{Value: strings.Split(v, ",")[0]}) {
 					return false
 				}
 			}

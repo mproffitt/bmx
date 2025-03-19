@@ -51,6 +51,15 @@ func (m *model) View() string {
 		}
 	}
 
+	if !m.ready {
+		if m.splash == nil {
+			return ""
+		}
+		splash := m.splash.View()
+		splash = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, splash)
+		return splash
+	}
+
 	if m.config.ManageSessionKubeContext && m.context != nil {
 		m.context = m.context.(*panel.Model).UpdateContextList(
 			m.session.Name, m.getSessionKubeconfig(m.session.Name))
@@ -155,6 +164,9 @@ func (m *model) makeZoomedOut(session string, windowIndex uint64) string {
 }
 
 func (m *model) resize() {
+	if m.session == nil {
+		return
+	}
 	width := min(listWidth, int(float64(m.width)*.25))
 	height := m.height // (m.height - padding)
 

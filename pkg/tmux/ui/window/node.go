@@ -62,6 +62,12 @@ type Node struct {
 	viewport     viewport.Model
 	session      string
 	window       int
+	details      *Details
+}
+
+type Details struct {
+	CurrentPath string `yaml:"pane_current_path"`
+	Command     string `yaml:"command"`
 }
 
 // Finds the pane with the given ID
@@ -77,6 +83,30 @@ func (n *Node) FindPane(id int) *Node {
 		return n
 	}
 	return nil
+}
+
+func (n *Node) Details() *Details {
+	return n.details
+}
+
+func (n *Node) loadDetails() {
+	if n.HasChildren() {
+		return
+	}
+
+	var d Details
+	{
+		paneid := fmt.Sprintf("%%%d", *n.PaneID)
+		pid := tmux.GetPanePid(paneid)
+		d.Command = n.GetCommand(pid)
+	}
+
+	d.CurrentPath, _, _ = tmux.Exec([]string{
+		"display-message", "-t",
+		fmt.Sprintf("%%%d", *n.PaneID),
+		"-p", "-F", "#{pane_current_path}",
+	})
+	n.details = &d
 }
 
 // Get the contents of the pane via capture pane
@@ -110,26 +140,23 @@ func (n *Node) GetContents() string {
 	return content
 }
 
-// Get the command running in the pane
-func (n *Node) GetCommand(pid int32) string {
-	p, err := process.NewProcess(pid)
-	if err != nil {
-		return ""
-	}
-
-	cmd, err := p.Cmdline()
-	if err != nil {
-		return ""
-	}
-	return cmd
-}
-
 func (n *Node) SetSessionName(session string) {
 	n.session = session
 }
 
 func (n *Node) SetWindowIndex(window int) {
 	n.window = window
+}
+
+func (n *Node) GetDetails() []*Details {
+	details := make([]*Details, 0)
+	if n.HasChildren() {
+		for _, child := range n.Children {
+			details = append(details, child.GetDetails()...)
+		}
+	}
+	details = append(details, n.details)
+	return details
 }
 
 // Get the list of all pane commands running in this window
@@ -146,6 +173,25 @@ func (n *Node) GetCommands() []string {
 
 	commands = append(commands, n.GetCommand(pid))
 	return commands
+}
+
+// Get the command running in the pane
+func (n *Node) GetCommand(pid int32) string {
+	log.Debug("finding command", "pid", pid)
+	p, err := process.NewProcess(pid)
+	if err != nil {
+		return ""
+	}
+	children, err := p.Children()
+	if err != nil || len(children) == 0 {
+		return ""
+	}
+
+	cmd, err := children[0].Cmdline()
+	if err != nil {
+		return ""
+	}
+	return cmd
 }
 
 // True if this node has children
@@ -234,11 +280,6 @@ func (n *Node) View(position int, isCol bool) string {
 	contents := n.GetContents()
 	n.viewport.SetContent(contents)
 
-	/*sessionPane := fmt.Sprintf("%%%d", *n.PaneID)
-	cmd := tmux.PaneCurrentCommand(sessionPane)
-	if slices.Contains(tmux.CommonShells, cmd) {
-		_ = n.viewport.GotoBottom()
-	}*/
 	return n.viewport.View()
 }
 

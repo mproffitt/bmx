@@ -27,6 +27,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
+	"github.com/mproffitt/bmx/pkg/tmux/ui/manager"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
 	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
@@ -53,7 +54,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if selected, ok := m.list.SelectedItem().(session.Session); ok {
 			m.session = &selected
 		}
-		m.list.Select(int((*m.session).Index))
+		if m.session != nil {
+			m.list.Select(int((*m.session).Index))
+		}
 	case windowManager:
 		if selected, ok := m.list.SelectedItem().(*tmuxui.Window); ok {
 			m.window = selected
@@ -139,16 +142,28 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.height = msg.Height
 		m.width = msg.Width
-		m.resize()
-		m.setItems()
+		cmds = append(cmds, helpers.ReloadManagerCmd())
 	case spinner.TickMsg:
+		if m.splash != nil {
+			m.splash, cmd = m.splash.Update(msg)
+			cmds = append(cmds, cmd)
+			if m.manager.Ready {
+				m.splash = nil
+				break
+			}
+		}
 		if m.overlay != nil {
 			var model tea.Model
 			model, cmd = m.overlay.Model.Update(msg)
 			m.overlay.Model = model.(helpers.UseOverlay)
 			cmds = append(cmds, cmd)
 		}
+	case manager.ManagerReadyMsg:
+		if msg.Ready {
+			cmds = append(cmds, helpers.ReloadManagerCmd())
+		}
 	case helpers.ReloadManagerMsg:
+		m.resize()
 		m.setItems()
 	case helpers.ErrorMsg:
 		if m.focused == overlayPane {

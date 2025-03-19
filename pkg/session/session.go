@@ -29,6 +29,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/components/overlay"
+	"github.com/mproffitt/bmx/pkg/components/splash"
 	"github.com/mproffitt/bmx/pkg/components/viewport"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
@@ -83,7 +84,9 @@ type model struct {
 	managerIterator manager.Iterator
 	overlay         *overlay.Container
 	preview         *viewport.Model
+	ready           bool
 	session         *session.Session
+	splash          *splash.Model
 	window          *tmuxui.Window
 
 	styles styles
@@ -117,6 +120,7 @@ func New(c *config.Config) *model {
 		manager:         manager,
 		managerIterator: Iterator,
 		preview:         viewport.New(c.Colours(), 0, 0),
+		splash:          splash.New(c.Colours()),
 		styles: styles{
 			sessionlist: lipgloss.NewStyle().MarginRight(1),
 			viewportNormal: lipgloss.NewStyle().
@@ -136,7 +140,6 @@ func New(c *config.Config) *model {
 	m.styles.delegates.normal = m.createListNormalDelegate()
 	m.styles.delegates.shaded = m.createListShadedDelegate()
 
-	m.setItems()
 	m.list.SetDelegate(m.styles.delegates.normal)
 	m.list.SetShowFilter(false)
 	m.list.SetFilteringEnabled(false)
@@ -144,12 +147,13 @@ func New(c *config.Config) *model {
 	m.list.SetShowPagination(true)
 	m.list.SetShowStatusBar(false)
 	m.list.SetShowTitle(false)
+	go m.setItems()
 
 	return &m
 }
 
 func (m *model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(m.splash.Init(), m.manager.Init())
 }
 
 func (m *model) Overlay() helpers.UseOverlay {
@@ -205,6 +209,10 @@ func (m *model) handleDialog(status dialog.Status) (tea.Cmd, error) {
 	return cmd, err
 }
 
+func (m *model) Ready() bool {
+	return m.manager.Ready && m.ready
+}
+
 func (m *model) setItems() {
 	switch m.active {
 	case sessionManager:
@@ -220,6 +228,9 @@ func (m *model) setSessionItems() {
 	for i, s := range sessions {
 		s.Index = uint(i)
 		items[i] = s
+	}
+	if len(items) > 0 {
+		m.ready = true
 	}
 	_ = m.list.SetItems(items)
 	index := 0

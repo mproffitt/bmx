@@ -22,12 +22,24 @@ package manager
 import (
 	"fmt"
 	"sort"
+	"sync"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
 )
+
+type ManagerReadyMsg struct {
+	Ready bool
+}
+
+func ManagerReadyCmd(ready bool) tea.Cmd {
+	return func() tea.Msg {
+		return ManagerReadyMsg{Ready: ready}
+	}
+}
 
 type (
 	GetBy  int
@@ -47,8 +59,10 @@ const (
 )
 
 type Model struct {
+	sync.Mutex
 	sessions []*session.Session
 	colours  *config.ColourStyles
+	Ready    bool
 }
 
 type Iterator func(yield func(int, *session.Session) bool)
@@ -56,7 +70,6 @@ type Iterator func(yield func(int, *session.Session) bool)
 // Creates a new Session Manager
 func New() (*Model, Iterator) {
 	m := Model{}
-	m.load()
 
 	return &m, func(yield func(key int, val *session.Session) bool) {
 		func(yield func(key int, val *session.Session) bool) bool {
@@ -68,6 +81,10 @@ func New() (*Model, Iterator) {
 			return false
 		}(yield)
 	}
+}
+
+func (m *Model) Init() tea.Cmd {
+	return m.load()
 }
 
 // Get the session with the given name
@@ -151,6 +168,12 @@ func (m *Model) Refresh(includeKubeconfig, sendVars bool) error {
 		}
 		envvars = append(envvars, "KUBECONFIG")
 	}
+
+	err := tmux.Refresh(includeKubeconfig)
+	if err != nil {
+		return err
+	}
+
 	if sendVars {
 		tmux.SendVars(envvars)
 	}
@@ -195,10 +218,20 @@ func (m *Model) WithColours(c *config.ColourStyles) *Model {
 	return m
 }
 
-func (m *Model) load() {
+func (m *Model) load() tea.Cmd {
 	m.sessions = make([]*session.Session, 0)
+	var wg sync.WaitGroup
 	for _, s := range tmux.ListSessions() {
-		session := session.New(s, m.colours)
-		m.sessions = append(m.sessions, &session)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			session := session.New(s, m.colours)
+			m.Lock()
+			m.sessions = append(m.sessions, &session)
+			m.Unlock()
+		}()
 	}
+	wg.Wait()
+	m.Ready = true
+	return ManagerReadyCmd(m.Ready)
 }

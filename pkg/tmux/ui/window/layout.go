@@ -131,6 +131,9 @@ func (w *Window) parseNode(input string) (*Node, string, error) {
 		Width:  width,
 		X:      x,
 		Y:      y,
+
+		session: w.Session,
+		window:  int(w.Index),
 	}
 	remaining := input[len(matches[0]):]
 
@@ -153,11 +156,6 @@ func (w *Window) parseNode(input string) (*Node, string, error) {
 		}
 	}
 
+	node.loadDetails()
 	return &node, remaining, nil
-}
-
-func (w *Window) findCommandStrings() {
-	for _, child := range w.root.Children {
-		w.commands = append(w.commands, child.GetCommands()...)
-	}
 }

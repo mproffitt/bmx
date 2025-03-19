@@ -26,6 +26,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/helpers"
 )
 
@@ -42,7 +43,7 @@ var CommonShells = []string{
 //
 // If sendVars is true, it will also trigger writing the export
 // command to all shells
-func Refresh(includeKubeconfig, sendVars bool) error {
+func Refresh(includeKubeconfig bool) error {
 	args := []string{
 		"display-message", "-p", "#{config_files}",
 	}
@@ -52,11 +53,13 @@ func Refresh(includeKubeconfig, sendVars bool) error {
 	}
 
 	for _, file := range strings.Split(stdout, ",") {
+		log.Info("sourcing", "file", file)
 		args = []string{
 			"source-file", file,
 		}
 		err := ExecSilent(args)
 		if err != nil {
+			log.Error("failed to source ", "file", file, "error", err)
 			return fmt.Errorf("failed to source file %q %w", file, err)
 		}
 	}
@@ -98,7 +101,7 @@ func PaneCurrentCommand(sessionPane string) string {
 //
 // This function uses the send-keys functionality to attempt
 // to suspend any current job, write the given environment
-// variables and then resum the jobs.
+// variables and then resume the jobs.
 //
 // All error messages from exec are ignored and the behaviour
 // of this command may be unpredictable. Use with caution
