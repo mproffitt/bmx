@@ -33,7 +33,7 @@ import (
 var (
 	executable = helpers.ExecutableName()
 	tmuxExec   = helpers.ExecString()
-	tmsConfig  *config.Config
+	bmxConfig  *config.Config
 	noPopup    bool
 )
 
@@ -62,7 +62,7 @@ func Execute() {
 	}
 
 	var err error
-	tmsConfig, err = config.New()
+	bmxConfig, err = config.New()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to load config %q\n", err.Error())
 		os.Exit(1)
@@ -76,7 +76,7 @@ func Execute() {
 }
 
 func createTitle(t string) string {
-	return fmt.Sprintf("#[align=centre fg=%s] %s ", tmsConfig.Colours().Yellow.Dark, t)
+	return fmt.Sprintf("#[align=centre fg=%s] %s ", bmxConfig.Colours().Yellow.Dark, t)
 }
 
 func init() {

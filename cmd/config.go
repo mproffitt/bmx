@@ -32,7 +32,7 @@ var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "configure " + executable,
 	Run: func(cmd *cobra.Command, args []string) {
-		m := config.NewConfigModel(tmsConfig)
+		m := config.NewConfigModel(bmxConfig)
 		if m == nil {
 			fmt.Println("Failed to set up config model")
 			os.Exit(1)

@@ -42,7 +42,7 @@ var killCmd = &cobra.Command{
 		}
 
 		if !noPopup {
-			err := tmux.DisplayPopup("28", "8", "", tmsConfig.Colours().Black.Dark, []string{
+			err := tmux.DisplayPopup("28", "8", "", bmxConfig.Colours().Black.Dark, []string{
 				tmuxExec, "kill", "--no-popup",
 			})
 			if err != nil {
@@ -53,7 +53,7 @@ var killCmd = &cobra.Command{
 		}
 
 		m := dialog.New("Are you sure you want to kill the current session",
-			false, tmsConfig, true, 27)
+			false, bmxConfig, true, 27)
 		run(m)
 		fmt.Printf("%+v\n", m)
 		if m.(*dialog.Dialog).Status() == dialog.Confirm {

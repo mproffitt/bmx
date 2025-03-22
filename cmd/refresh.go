@@ -55,7 +55,7 @@ Generally, if your shell is set up correctly, you should not need to use the
 'send-vars' flag although it exists as a convenience function.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			manager, _ := manager.New()
-			err := manager.Refresh(tmsConfig.CreateSessionKubeConfig, sendVars)
+			err := manager.Refresh(bmxConfig.CreateSessionKubeConfig, sendVars)
 			if err != nil {
 
 				fmt.Fprintf(os.Stderr, "failed to refresh sessions. error was %q", err.Error())

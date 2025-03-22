@@ -56,7 +56,7 @@ var loadCmd = &cobra.Command{
 
 		var wg sync.WaitGroup
 		{
-			for _, session := range tmsConfig.Sessions {
+			for _, session := range bmxConfig.Sessions {
 				wg.Add(1)
 				session := session
 				createSession(session, &wg)
@@ -66,7 +66,7 @@ var loadCmd = &cobra.Command{
 
 		// Clean up any sessions not in the config file
 		requiredSessions := make([]string, 0)
-		for _, session := range tmsConfig.Sessions {
+		for _, session := range bmxConfig.Sessions {
 			requiredSessions = append(requiredSessions, session.Name)
 		}
 
@@ -80,8 +80,8 @@ var loadCmd = &cobra.Command{
 			}
 		}
 
-		if tmsConfig.DefaultSession != "" {
-			fmt.Fprintf(os.Stdout, tmsConfig.DefaultSession)
+		if bmxConfig.DefaultSession != "" {
+			fmt.Fprintf(os.Stdout, bmxConfig.DefaultSession)
 		}
 	},
 }
@@ -95,7 +95,7 @@ func createSession(session helpers.Session, wg *sync.WaitGroup) {
 	for !tmux.HasSession(session.Name) {
 		log.Info("creating", "session", session.Name)
 		err := tmux.CreateSession(session.Name, session.Path,
-			"", tmsConfig.CreateSessionKubeConfig, false)
+			"", bmxConfig.CreateSessionKubeConfig, false)
 		if err != nil {
 			log.Error("failed to create", "session", session.Name, "error", err)
 			return
@@ -104,7 +104,7 @@ func createSession(session helpers.Session, wg *sync.WaitGroup) {
 		<-time.After(10 * time.Millisecond)
 	}
 
-	if tmsConfig.CreateSessionKubeConfig {
+	if bmxConfig.CreateSessionKubeConfig {
 		config, err := kubernetes.CreateConfig(session.Name)
 		if err != nil {
 			log.Error("failed to create or load kubeconfig", "error", err)

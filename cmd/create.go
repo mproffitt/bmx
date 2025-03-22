@@ -79,16 +79,16 @@ this will be exported as the $KUBECONFIG environment variable`,
 					"name":    parts[0],
 					"path":    parts[1],
 					"command": parts[2],
-				}, tmsConfig.CreateSessionKubeConfig)
+				}, bmxConfig.CreateSessionKubeConfig)
 			}
 			return
 		}
 		if noPopup {
-			m := table.New(tmsConfig, repos.RepoCallback)
+			m := table.New(bmxConfig, repos.RepoCallback)
 			run(m)
 			return
 		}
-		err := tmux.DisplayPopup("65%", "50%", createTitle("Create new session"), tmsConfig.Colours().Black.Dark, []string{
+		err := tmux.DisplayPopup("65%", "50%", createTitle("Create new session"), bmxConfig.Colours().Black.Dark, []string{
 			tmuxExec, "--no-popup", "create",
 		})
 		if err != nil {

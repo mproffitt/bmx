@@ -53,8 +53,8 @@ var menuCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := tmux.DisplayMenu(
 			createTitle("Session commands"),
-			tmsConfig.Colours().Black.Dark,
-			tmsConfig.Colours().Fg.Dark,
+			bmxConfig.Colours().Black.Dark,
+			bmxConfig.Colours().Fg.Dark,
 			"",
 			menu,
 		)
