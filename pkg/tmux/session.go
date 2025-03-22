@@ -27,25 +27,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 )
 
-func ListSessions() []string {
-	sessions, _, err := Exec([]string{
-		"list-sessions", "-F",
-		"#{session_name},#{session_windows},#{session_created},#{session_attached},#{session_group},#{session_path}",
-	})
-	if err != nil {
-		return []string{}
-	}
-	return strings.Split(sessions, "\n")
-}
-
-func HasSession(name string) bool {
-	if err := ExecSilent([]string{"has-session", "-t", name}); err != nil {
-		return false
-	}
-	return true
-}
-
-// Attach to the given named session
+// AttachSession attaches to the given named session
 func AttachSession(name string) error {
 	args := []string{
 		"switch-client", "-t", name,
@@ -61,17 +43,6 @@ func AttachSession(name string) error {
 		}
 	}
 	return nil
-}
-
-// Get the name of the current session
-func CurrentSession() string {
-	name, _, err := Exec([]string{
-		"display-message", "-p", "#{session_name}",
-	})
-	if err == nil {
-		return ""
-	}
-	return name
 }
 
 // Create a session with the given name, path and optionally command.
@@ -103,6 +74,25 @@ func CreateSession(name, path, command string, includeKubeConfig, attach bool) e
 	return nil
 }
 
+// Get the name of the current session
+func CurrentSession() string {
+	name, _, err := Exec([]string{
+		"display-message", "-p", "#{session_name}",
+	})
+	if err == nil {
+		return ""
+	}
+	return name
+}
+
+// If this server has a given session by name
+func HasSession(name string) bool {
+	if err := ExecSilent([]string{"has-session", "-t", name}); err != nil {
+		return false
+	}
+	return true
+}
+
 // Kill the given session
 //
 // Note: This kills the session  by name without checking
@@ -119,6 +109,19 @@ func KillSession(sessionName string) error {
 	}
 	_, _, err := Exec(args)
 	return err
+}
+
+// ListSessions returns a list of sessions on the
+// current tmux server
+func ListSessions() []string {
+	sessions, _, err := Exec([]string{
+		"list-sessions", "-F",
+		"#{session_name},#{session_windows},#{session_created},#{session_attached},#{session_group},#{session_path}",
+	})
+	if err != nil {
+		return []string{}
+	}
+	return strings.Split(sessions, "\n")
 }
 
 // Creates a new session and attaches to it.
@@ -168,6 +171,18 @@ func NewSessionOrAttach(in map[string]any, includeKubeConfig bool) error {
 	return CreateSession(name, path, command, includeKubeConfig, true)
 }
 
+// List all panes in a given session
+func SessionPanes(session string) ([]string, error) {
+	args := []string{
+		"list-panes", "-t", session, "-F", "#{pane_id}",
+	}
+	output, _, err := Exec(args)
+	if err != nil {
+		return []string{}, err
+	}
+	return strings.Split(output, "\n"), nil
+}
+
 // Get the path for a given session
 //
 // This calls tmux display-message #{session_path} and if that returns
@@ -181,16 +196,4 @@ func SessionPath(name string) string {
 		path, _ = os.UserHomeDir()
 	}
 	return path
-}
-
-// List all panes in a given session
-func SessionPanes(session string) ([]string, error) {
-	args := []string{
-		"list-panes", "-t", session, "-F", "#{pane_id}",
-	}
-	output, _, err := Exec(args)
-	if err != nil {
-		return []string{}, err
-	}
-	return strings.Split(output, "\n"), nil
 }

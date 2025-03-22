@@ -147,7 +147,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.splash != nil {
 			m.splash, cmd = m.splash.Update(msg)
 			cmds = append(cmds, cmd)
-			if m.manager.Ready {
+			if m.Ready() {
 				m.splash = nil
 				break
 			}

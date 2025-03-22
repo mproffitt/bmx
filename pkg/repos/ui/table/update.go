@@ -20,6 +20,8 @@
 package table
 
 import (
+	"errors"
+	"os"
 	"os/user"
 
 	"github.com/charmbracelet/bubbles/key"
@@ -27,6 +29,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/exec"
+	"k8s.io/utils/strings/slices"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -135,20 +138,59 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			*m.current, _ = m.current.Update(msg)
 			currentInputValue := m.current.Value()
 			var currentRowValue string
-			if data, ok := m.table.HighlightedRow().Data[columnKeyName]; ok {
-				currentRowValue = data.(string)
+			{
+				if data, ok := m.table.HighlightedRow().Data[columnKeyName]; ok {
+					currentRowValue = data.(string)
+				}
 			}
+
 			if m.focus == Filter && currentInputValue != currentRowValue {
 				value := m.inputs.filter.Value()
 				m.table = m.table.WithFilterInputValue(value)
 			}
-			if m.focus == Command && (msg.String() == " " || msg.String() == "-") {
-				out, err := exec.ZshCompletions(currentInputValue)
-				if err == nil {
-					m.inputs.command.SetSuggestions(out)
-				} else {
+
+			var (
+				options []exec.Completion
+				err     error
+			)
+			switch m.focus {
+			case Command:
+				// For commands we allow triggering completion from
+				// space, hyphen or slash. This should allow for
+				// collection of sub-commands, options and paths
+				// for command line completion
+				allowed := []string{" ", "-", "/"}
+				if slices.Contains(allowed, msg.String()) {
+					options, err = exec.ZshCompletions(currentInputValue)
+				}
+			case Path:
+				if msg.String() == "/" {
+					options, err = exec.ZshCompletions(currentInputValue)
+				}
+			}
+
+			if err != nil {
+				if !errors.Is(err, exec.MissingZshError{}) {
 					(*m.current).SetValue(err.Error())
 				}
+				break
+			}
+			suggestions := make([]string, len(options))
+			for _, o := range options {
+				// Paths are only allowed directories
+				if m.focus == Path {
+					finfo, err := os.Stat(o.Option)
+					if err != nil || !finfo.IsDir() {
+						continue
+					}
+				}
+				suggestions = append(suggestions, o.Option)
+			}
+
+			// only set new suggestions so we're not overwriting
+			// existing on every keypress
+			if len(suggestions) > 0 {
+				(*m.current).SetSuggestions(suggestions)
 			}
 		}
 	case dialog.DialogStatusMsg:

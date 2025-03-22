@@ -76,3 +76,25 @@ type UseOverlay interface {
 	Update(tea.Msg) (tea.Model, tea.Cmd)
 	GetSize() (int, int)
 }
+
+type Session struct {
+	Command string   `yaml:"command"`
+	Name    string   `yaml:"name"`
+	Path    string   `yaml:"path"`
+	Windows []Window `yaml:"windows"`
+}
+
+type Window struct {
+	Layout string `yaml:"layout"`
+	Name   string `yaml:"name"`
+	Index  uint   `yaml:"index"`
+	Panes  []Pane `yaml:"panes"`
+}
+
+type Pane struct {
+	CurrentCommand string `yaml:"pane_current_command"`
+	CurrentPath    string `yaml:"pane_current_path"`
+	StartCommand   string `yaml:"pane_start_command"`
+	StartPath      string `yaml:"pane_start_path"`
+	Title          string `yaml:"title"`
+}

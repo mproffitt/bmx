@@ -27,6 +27,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
 )
 
@@ -134,7 +135,7 @@ func new(session, attrStr string) *Window {
 		w.Flags[f] = true
 	}
 	w.PaneCount, _ = strconv.ParseUint(attributes[4], 10, 8)
-	w.layout, _ = tmux.WindowLayout(fmt.Sprintf("%s:%d", w.Session, w.Index))
+	w.layout, _ = tmux.GetWindowLayout(fmt.Sprintf("%s:%d", w.Session, w.Index))
 	if _, err := w.parse(w.layout); err != nil {
 		log.Debug("error parsing layout ", w.layout)
 		return nil
@@ -154,17 +155,14 @@ func (w *Window) Len() int {
 	return w.root.Len()
 }
 
-func (w *Window) MarshalYAML() (any, error) {
-	raw := struct {
-		Name   string     `yaml:"name"`
-		Layout string     `yaml:"layout"`
-		Panes  []*Details `yaml:"panes"`
-	}{
+func (w *Window) ToHelperStruct() helpers.Window {
+	window := helpers.Window{
 		Name:   w.Name,
 		Layout: w.layout,
+		Index:  uint(w.Index),
 		Panes:  w.getPaneDetails(),
 	}
-	return raw, nil
+	return window
 }
 
 func (w *Window) Rename(newname string) error {
@@ -246,6 +244,6 @@ func ListWindows(session string) []*Window {
 	return windows
 }
 
-func (w *Window) getPaneDetails() []*Details {
+func (w *Window) getPaneDetails() []helpers.Pane {
 	return w.root.GetDetails()
 }

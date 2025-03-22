@@ -30,19 +30,13 @@ import (
 	"github.com/mproffitt/bmx/pkg/helpers"
 )
 
-var EnvironmentVars = []string{}
-
 var CommonShells = []string{
 	"sh", "csh", "ksh", "zsh", "bash", "dash", "fish", "tcsh",
 }
 
 // Refresh the TMUX environment
 //
-// This causes tmux to reload all its configs, then optionally
-// sends the KUBECONFIG environment variable,
-//
-// If sendVars is true, it will also trigger writing the export
-// command to all shells
+// This causes tmux to reload all its configs
 func Refresh(includeKubeconfig bool) error {
 	args := []string{
 		"display-message", "-p", "#{config_files}",
@@ -66,6 +60,10 @@ func Refresh(includeKubeconfig bool) error {
 	return nil
 }
 
+// SetSessionEnvironment pushes session values into the TMUX environment
+//
+// This method does not set the shell environment variables.
+// Use `SendVars` for that
 func SetSessionEnvironment(session, variable, value string) error {
 	args := []string{
 		"set-environment", "-t", session, variable, value,
@@ -77,26 +75,6 @@ func SetSessionEnvironment(session, variable, value string) error {
 	return nil
 }
 
-// Get all panes across all sessions
-func ListAllPanes() []string {
-	stdout, _, err := Exec([]string{
-		"list-panes", "-a", "-F", "#S:#I.#P",
-	})
-	if err != nil {
-		return []string{}
-	}
-
-	return strings.Split(stdout, "\n")
-}
-
-func PaneCurrentCommand(sessionPane string) string {
-	out, _, _ := Exec([]string{
-		"display", "-p", "-t", sessionPane, "#{pane_current_command}",
-	})
-
-	return out
-}
-
 // Send tmux environment vars to all running panes
 //
 // This function uses the send-keys functionality to attempt
@@ -105,6 +83,9 @@ func PaneCurrentCommand(sessionPane string) string {
 //
 // All error messages from exec are ignored and the behaviour
 // of this command may be unpredictable. Use with caution
+//
+// Variables must be the name of variables set into the
+// TMUX session environment.
 func SendVars(varsToSend []string) {
 	for _, sessionPane := range ListAllPanes() {
 		out := PaneCurrentCommand(sessionPane)
@@ -119,6 +100,7 @@ func SendVars(varsToSend []string) {
 				"send-keys", "-t", sessionPane, "C-z", "C-m",
 			})
 		}
+
 		for _, v := range varsToSend {
 			_ = ExecSilent([]string{
 				"send-keys", "-t", sessionPane,

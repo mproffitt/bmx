@@ -28,29 +28,35 @@ import (
 )
 
 type BmxExecError struct {
-	stdout, stderr string
+	Command        string
+	Stdout, Stderr string
 	error          error
 }
 
 func (t *BmxExecError) Error() string {
 	var builder strings.Builder
 
-	if t.stdout != "" {
+	if t.Command != "" {
+		builder.WriteString("command: " + t.Command)
+		builder.WriteString("\n")
+	}
+
+	if t.Stdout != "" {
 		builder.WriteString("stdout:")
-		for _, line := range strings.Split(t.stdout, "\n") {
-			line = fmt.Sprintf("%s %s\n", strings.Repeat(" ", len("stdout:")), line)
+		for _, line := range strings.Split(t.Stdout, "\n") {
+			line = fmt.Sprintf("%s %s\n", strings.Repeat(" ", len("command:")), line)
 			builder.WriteString(line)
 		}
 	}
-	if t.stderr != "" {
+	if t.Stderr != "" {
 		builder.WriteString("stderr:")
-		for _, line := range strings.Split(t.stderr, "\n") {
+		for _, line := range strings.Split(t.Stderr, "\n") {
 			line = fmt.Sprintf("%s %s\n", strings.Repeat(" ", len("stdout:")), line)
 			builder.WriteString(line)
 		}
 	}
 
-	if t.error != nil && t.error.Error() != t.stderr {
+	if t.error != nil && t.error.Error() != t.Stderr {
 		builder.WriteString("error :")
 		for _, line := range strings.Split(t.error.Error(), "\n") {
 			line = fmt.Sprintf("%s %s\n", strings.Repeat(" ", len("stdout:")), line)
@@ -61,25 +67,42 @@ func (t *BmxExecError) Error() string {
 	return builder.String()
 }
 
-func Exec(command string, args []string) (string, string, error) {
+func execCmd(command string, args []string) (string, string, error) {
 	log.Debug(command + " " + strings.Join(args, " "))
 	cmd := exec.Command(command, args...)
 	var stdout strings.Builder
 	var stderr strings.Builder
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
+
+	var err error
+	{
+		err = cmd.Run()
+	}
+	var o, e string
+	{
+		o = strings.TrimSpace(stdout.String())
+		e = strings.TrimSpace(stderr.String())
+	}
+
+	if err != nil {
 		return "", "", &BmxExecError{
-			stdout: stdout.String(),
-			stderr: stderr.String(),
-			error:  err,
+			Command: command + " " + strings.Join(args, " "),
+			Stdout:  o,
+			Stderr:  e,
+			error:   err,
 		}
 	}
 
-	return strings.TrimSpace(stdout.String()), strings.TrimSpace(stderr.String()), nil
+	return o, e, nil
 }
 
-func ExecSilent(command string, args []string) error {
+func execSilentCmd(command string, args []string) error {
 	_, _, err := Exec(command, args)
 	return err
 }
+
+var (
+	Exec       = execCmd
+	ExecSilent = execSilentCmd
+)

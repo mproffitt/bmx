@@ -39,7 +39,12 @@ func Exec(args []string) (string, string, error) {
 		return "", "", errors.ErrUnsupported
 	}
 
-	return bmx.Exec(tmux, args)
+	tmuxArgs := []string{
+		"-S", GetSocketPath(),
+	}
+	tmuxArgs = append(tmuxArgs, args...)
+
+	return bmx.Exec(tmux, tmuxArgs)
 }
 
 // ExecSilent supresses Standard out and Standard error
@@ -51,30 +56,14 @@ func ExecSilent(args []string) error {
 	return err
 }
 
-// Get an environment variable from the TMUX env
-func GetTmuxEnvVar(session, name string) string {
-	args := []string{
-		"show-environment", "-t", session, name,
-	}
-	out, _, err := Exec(args)
-	if err != nil || out == "unknown variable: "+name {
-		return ""
-	}
-
-	// account for variables that include `=` signs
-	// such as those representing commands or variables
-	// that need to be re-exported from scripts
-	return strings.Join(strings.Split(out, "=")[1:], "=")
-}
-
 // Captures the given pane.
 //
 // If the value of truncateWidth is not equal to 0,
 // this method will attempt to truncate each line to the given width
 // preserving ansi escape sequences where present
-func CapturePane(targetPane string, truncateWidth int) (string, error) {
+func CapturePane(target string, truncateWidth int) (string, error) {
 	args := []string{
-		"capture-pane", "-ep", "-t", targetPane,
+		"capture-pane", "-ep", "-t", target,
 	}
 	output, _, err := Exec(args)
 	if err != nil {
@@ -127,14 +116,63 @@ func DisplayMenu(title, border, fg, bg string, args [][]string) error {
 	return err
 }
 
-// Gets the PID of the current pane
-func GetPanePid(paneid string) int32 {
+// Get the base index
+func GetBaseIndex() uint {
 	out, _, err := Exec([]string{
-		"display-message", "-t", paneid, "-p", "#{pane_pid}",
+		"show", "-gv", "base-index",
 	})
 	if err != nil {
-		return -1
+		return 0
 	}
-	pid, _ := strconv.Atoi(out)
-	return int32(pid)
+	index, err := strconv.ParseUint(out, 10, 8)
+	if err != nil {
+		return 0
+	}
+	return uint(index)
+}
+
+// Get the current socket path
+func GetSocketPath() string {
+	tmux, err := exec.LookPath("tmux")
+	if err != nil {
+		return ""
+	}
+
+	args := []string{
+		"display-message", "-p", "#{socket_path}",
+	}
+
+	path, _, _ := bmx.Exec(tmux, args)
+
+	return path
+}
+
+// Get an environment variable from the TMUX env
+func GetTmuxEnvVar(target, name string) string {
+	args := []string{
+		"show-environment", "-t", target, name,
+	}
+	out, _, err := Exec(args)
+	if err != nil || out == "unknown variable: "+name {
+		return ""
+	}
+
+	// account for variables that include `=` signs
+	// such as those representing commands or variables
+	// that need to be re-exported from scripts
+	return strings.Join(strings.Split(out, "=")[1:], "=")
+}
+
+func IsRunning() bool {
+	return GetSocketPath() != ""
+}
+
+func SendKeys(target string, keysToSend string) {
+	if keysToSend == "" {
+		return
+	}
+	_ = ExecSilent([]string{
+		"send-keys", "-t", target,
+		keysToSend, "C-m",
+	})
 }

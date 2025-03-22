@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
@@ -44,9 +45,8 @@ type Session struct {
 	Path       string
 	Windows    []*window.Window
 
-	colours    *config.ColourStyles
-	kubeconfig string
-	command    string
+	colours *config.ColourStyles
+	command string
 }
 
 // Load a session details and return a new session object
@@ -92,22 +92,17 @@ func (s Session) Description() string {
 func (s Session) FilterValue() string { return s.Name }
 
 // Marshal an individual session
-func (s Session) MarshalYAML() (any, error) {
-	raw := struct {
-		Name       string           `yaml:"name"`
-		KubeConfig string           `yaml:"kubeconfig"`
-		Command    string           `yaml:"command,omitempty"`
-		Path       string           `yaml:"path"`
-		Windows    []*window.Window `yaml:"windows"`
-	}{
-		Name:       s.Name,
-		KubeConfig: s.kubeconfig,
-		Command:    s.command,
-		Path:       s.Path,
-		Windows:    make([]*window.Window, 0),
+func (s Session) ToHelperStruct() helpers.Session {
+	session := helpers.Session{
+		Name:    s.Name,
+		Command: s.command,
+		Path:    s.Path,
+		Windows: make([]helpers.Window, 0),
 	}
-	raw.Windows = append(raw.Windows, s.Windows...)
-	return raw, nil
+	for _, window := range s.Windows {
+		session.Windows = append(session.Windows, window.ToHelperStruct())
+	}
+	return session
 }
 
 // Get the session title

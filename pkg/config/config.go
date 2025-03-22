@@ -37,12 +37,12 @@ const (
 )
 
 type Config struct {
-	Paths                    []string `yaml:"paths"`
-	CreateSessionKubeConfig  bool     `yaml:"createSessionKubeConfig"`
-	DefaultSession           string   `yaml:"defaultSession"`
-	ManageSessionKubeContext bool     `yaml:"manageSessionKubeContext"`
-	Theme                    string   `yaml:"theme"`
-	Sessions                 []any    `yaml:"sessions"`
+	Paths                    []string          `yaml:"paths"`
+	CreateSessionKubeConfig  bool              `yaml:"createSessionKubeConfig"`
+	DefaultSession           string            `yaml:"defaultSession"`
+	ManageSessionKubeContext bool              `yaml:"manageSessionKubeContext"`
+	Theme                    string            `yaml:"theme"`
+	Sessions                 []helpers.Session `yaml:"sessions"`
 	filename                 string
 	colours                  ColourStyles
 }
@@ -146,7 +146,7 @@ func (c *Config) GetConfigFile() string {
 }
 
 // Save session information
-func (c *Config) SetSessions(sessions []any) error {
+func (c *Config) SetSessions(sessions []helpers.Session) error {
 	c.Sessions = sessions
 	return c.writeConfig(c.filename)
 }

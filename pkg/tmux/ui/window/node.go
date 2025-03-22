@@ -26,6 +26,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/muesli/reflow/padding"
 	"github.com/muesli/reflow/truncate"
@@ -62,12 +63,7 @@ type Node struct {
 	viewport     viewport.Model
 	session      string
 	window       int
-	details      *Details
-}
-
-type Details struct {
-	CurrentPath string `yaml:"pane_current_path"`
-	Command     string `yaml:"command"`
+	details      helpers.Pane
 }
 
 // Finds the pane with the given ID
@@ -85,7 +81,7 @@ func (n *Node) FindPane(id int) *Node {
 	return nil
 }
 
-func (n *Node) Details() *Details {
+func (n *Node) Details() helpers.Pane {
 	return n.details
 }
 
@@ -94,11 +90,11 @@ func (n *Node) loadDetails() {
 		return
 	}
 
-	var d Details
+	var d helpers.Pane
 	{
 		paneid := fmt.Sprintf("%%%d", *n.PaneID)
 		pid := tmux.GetPanePid(paneid)
-		d.Command = n.GetCommand(pid)
+		d.CurrentCommand = n.GetCommand(pid)
 	}
 
 	d.CurrentPath, _, _ = tmux.Exec([]string{
@@ -106,7 +102,7 @@ func (n *Node) loadDetails() {
 		fmt.Sprintf("%%%d", *n.PaneID),
 		"-p", "-F", "#{pane_current_path}",
 	})
-	n.details = &d
+	n.details = d
 }
 
 // Get the contents of the pane via capture pane
@@ -148,12 +144,13 @@ func (n *Node) SetWindowIndex(window int) {
 	n.window = window
 }
 
-func (n *Node) GetDetails() []*Details {
-	details := make([]*Details, 0)
+func (n *Node) GetDetails() []helpers.Pane {
+	details := make([]helpers.Pane, 0)
 	if n.HasChildren() {
 		for _, child := range n.Children {
 			details = append(details, child.GetDetails()...)
 		}
+		return details
 	}
 	details = append(details, n.details)
 	return details

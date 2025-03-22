@@ -21,13 +21,55 @@ package exec
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 )
+
+type MissingZshError struct{}
+
+func (e MissingZshError) Error() string {
+	return "missing zsh"
+}
+
+type ExecTimeoutError struct{}
+
+func (e ExecTimeoutError) Error() string {
+	return "deadline exceeded"
+}
+
+type Completion struct {
+	Option      string
+	Description string
+}
+
+// We use a context timeout for executing shell completions
+// by default this is set to 5 seconds to allow commands which
+// rely on remote executions such as kubectl time to complete.
+const maxDuration = 5 * time.Second
+
+// The Capture script is a slightly modified version of the
+// `zsh-capture-completion` script from
+// https://github.com/Valodim/zsh-capture-completion.
+//
+// This script can be bound to an input field and will
+// execute the completion commands for a given input.
+//
+// It should be noted that it is not worth binding to every
+// keypress, but should be bound to the space character, and
+// optionally hyphen `-` and slash `/` characters.
+//
+// The script will only work in environments where ZSH is
+// installed although this does not have to be the users primary
+// shell as long as the completions are also installed alongside
+//
+// Modifications are made to ensure custom completions defined
+// by zsh.completion and oh-my-zsh are loaded and an additional
+// set of kubernetes specific command completions are also
+// sourced.
 
 const capture = `
 #!/bin/zsh
@@ -52,29 +94,34 @@ setopt rcquotes
 # no prompt!
 PROMPT=
 
+# Check for custom completions for common frameworks
+if [[ -d "${HOME}/.oh-my-zsh/custom/completions" ]]; then
+    fpath+=("${HOME}/.oh-my-zsh/custom/completions")
+fi
+
+if [[ -d "$HOME/.zsh-completions" ]]; then
+    fpath+=("$HOME/.zsh-completions/src")
+fi
+
 # load completion system
 autoload compinit
 compinit -d ~/.zcompdump_capture
 
-if command -v kubectl &>/dev/null ; then
-    source <(kubectl completion zsh)
-fi
+typeset -A cmds=(
+  [kubectl]=''source <(kubectl completion zsh)''
+  [stern]=''source <(stern --completion=zsh)''
+  [helm]=''source <(helm completion zsh)''
+  [tsh]=''source <(tsh --completion-script-zsh)''
+  [flux]=''source <(flux completion zsh)''
+)
 
-if command -v stern &>/dev/null ; then
-    source <(stern --completion zsh)
-fi
+# Iterate over each command to source its completion script
+for key value in ${(kv)cmds}; do
+  if command -v $key >/dev/null 2>&1; then
+    eval ${value}
+  fi
+done
 
-if command -v helm &>/dev/null ; then
-    source <(helm completion zsh)
-fi
-
-if command -v tsh &>/dev/null ; then
-    source <(tsh --completion-script-zsh)
-fi
-
-if command -v flux &>/dev/null ; then
-    source <(flux completion zsh)
-fi
 # never run a command
 bindkey ''^M'' undefined
 bindkey ''^J'' undefined
@@ -133,7 +180,7 @@ compadd () {
     # this takes care of matching for us.
     builtin compadd -A __hits -D __dscr "$@"
 
-    # JESUS CHRIST IT TOOK ME FOREVER TO FIGURE OUT THIS OPTION WAS SET AND WAS MESSING WITH MY SHIT HERE
+    # set additional required options
     setopt localoptions norcexpandparam extendedglob
 
     # extract prefixes and suffixes from compadd call. we can''t do zsh''s cool
@@ -158,16 +205,13 @@ compadd () {
     # display all matches
     local dsuf dscr
     for i in {1..$#__hits}; do
-
         # add a dir suffix?
         (( dirsuf )) && [[ -d $__hits[$i] ]] && dsuf=/ || dsuf=
         # description to be displayed afterwards
         (( $#__dscr >= $i )) && dscr=" -- ${${__dscr[$i]}##$__hits[$i] #}" || dscr=
 
         echo -E - $IPREFIX$apre$hpre$__hits[$i]$dsuf$hsuf$asuf$dscr
-
     done
-
 }
 
 # signal success!
@@ -187,56 +231,74 @@ done
 return 2
 `
 
-func ZshCompletions(in string) (out []string, err error) {
-	shell := os.Getenv("SHELL")
-	shell = filepath.Base(shell)
-	if shell != "zsh" {
-		err = fmt.Errorf("invalid shell %q", shell)
-		return
-	}
-	// Create a temporary file
-	var tmpFile *os.File
-	tmpFile, err = os.CreateTemp("/tmp", "script-*.zsh")
-	if err != nil {
-		fmt.Println("Error creating temp file:", err)
-		return
-	}
+func HasZsh() bool {
+	_, err := exec.LookPath("zsh")
+	return err != nil
+}
 
-	defer os.Remove(tmpFile.Name()) // Ensure file is deleted after execution
-
-	// Write the script to the temp file
-	if _, err = tmpFile.Write([]byte(capture)); err != nil {
-		return
-	}
-	tmpFile.Close()
-
-	var stdout strings.Builder
-	var stderr strings.Builder
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, "/bin/zsh", tmpFile.Name(), in)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err = cmd.Run(); err != nil {
-		return []string{}, &BmxExecError{
-			stdout: stdout.String(),
-			stderr: stderr.String(),
-			error:  err,
+func ZshCompletions(in string) (out []Completion, err error) {
+	// Check to see if zsh exists in the users environment
+	var zsh string
+	{
+		// Check to see if zsh is installed in the system
+		if zsh, err = exec.LookPath("zsh"); err != nil {
+			err = MissingZshError{}
+			return
 		}
 	}
-	out = make([]string, 0)
+
+	// Create a temporary file to hold the script contents
+	var tmpFile *os.File
+	{
+		tmpFile, err = os.CreateTemp("/tmp", "script-*.zsh")
+		if err != nil {
+			err = fmt.Errorf("Error creating temp file %w", err)
+			return
+		}
+	}
+	defer os.Remove(tmpFile.Name())
+
+	{
+		if _, err = tmpFile.Write([]byte(capture)); err != nil {
+			return
+		}
+		tmpFile.Close()
+	}
+
+	var stdout, stderr strings.Builder
+	{
+		ctx, cancel := context.WithTimeout(context.Background(), maxDuration)
+		defer cancel()
+
+		cmd := exec.CommandContext(ctx, zsh, tmpFile.Name(), in)
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+		if err = cmd.Run(); err != nil {
+			if errors.Is(err, context.DeadlineExceeded) {
+				return []Completion{}, ExecTimeoutError{}
+			}
+			return []Completion{}, &BmxExecError{
+				Stdout: stdout.String(),
+				Stderr: stderr.String(),
+				error:  err,
+			}
+		}
+	}
+	out = make([]Completion, 0)
 	for _, line := range strings.Split(stdout.String(), "\n") {
-		p := strings.Split(line, "--")
-		current := strings.TrimSpace(p[0])
-		if len(current) == 0 {
+		p := strings.Split(line, " -- ")
+		option := strings.TrimSpace(p[0])
+		description := strings.TrimSpace(p[1])
+		if len(option) == 0 {
 			continue
 		}
-		if in[len(in)-1] == '-' && current[0] == '-' {
-			current = current[1:]
+		if in[len(in)-1] == '-' && option[0] == '-' {
+			option = option[1:]
 		}
-		out = append(out, in+current)
+		out = append(out, Completion{
+			Option:      in + option,
+			Description: description,
+		})
 	}
 	return
 }

@@ -23,27 +23,18 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/helpers"
-	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
 )
 
 func (m *model) save() tea.Cmd {
 	log.Debug("triggering save")
-	s := make([]session.Session, 0)
+	s := make([]helpers.Session, 0)
 	for _, v := range m.manager.Items() {
-		s = append(s, *v)
+		s = append(s, v.ToHelperStruct())
 	}
-	sessions := unpackArray(s)
-	err := m.config.SetSessions(sessions)
+
+	err := m.config.SetSessions(s)
 	if err != nil {
 		return helpers.NewErrorCmd(err)
 	}
 	return nil
-}
-
-func unpackArray[S ~[]E, E any](s S) []any {
-	r := make([]any, len(s))
-	for i, e := range s {
-		r[i] = e
-	}
-	return r
 }
