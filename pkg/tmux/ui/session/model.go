@@ -32,6 +32,7 @@ import (
 )
 
 type Renamable interface {
+	GetName() string
 	Rename(newname string) error
 }
 
@@ -50,7 +51,7 @@ type Session struct {
 }
 
 // Load a session details and return a new session object
-func New(session string, c *config.ColourStyles) Session {
+func New(session string, c *config.ColourStyles) *Session {
 	parts := strings.Split(session, ",")
 
 	details := Session{
@@ -71,16 +72,16 @@ func New(session string, c *config.ColourStyles) Session {
 		details.Created = time.Unix(t, 0)
 	}
 	details.Windows = window.ListWindows(details.Name)
-	return details
+	return &details
 }
 
 // Attach to the current session
-func (s Session) Attach() error {
+func (s *Session) Attach() error {
 	return tmux.AttachSession(s.Name)
 }
 
 // Get the description of this session
-func (s Session) Description() string {
+func (s *Session) Description() string {
 	date := s.Created.Format(time.ANSIC)
 	if s.Attached {
 		return fmt.Sprintf("active\n%s", date)
@@ -89,10 +90,24 @@ func (s Session) Description() string {
 }
 
 // Filter value for filterable lists
-func (s Session) FilterValue() string { return s.Name }
+func (s *Session) FilterValue() string { return s.Name }
+
+// Gets the name of the current session
+func (s *Session) GetName() string { return s.Name }
+
+// Kill the window with the given index
+func (s *Session) KillWindow(index uint64) error {
+	target := fmt.Sprintf("%s:%d", s.Name, index)
+	return tmux.KillWindow(target)
+}
+
+// Rename session
+func (s *Session) Rename(name string) error {
+	return tmux.RenameSession(s.Name, name)
+}
 
 // Marshal an individual session
-func (s Session) ToHelperStruct() helpers.Session {
+func (s *Session) ToHelperStruct() helpers.Session {
 	session := helpers.Session{
 		Name:    s.Name,
 		Command: s.command,
@@ -106,11 +121,11 @@ func (s Session) ToHelperStruct() helpers.Session {
 }
 
 // Get the session title
-func (s Session) Title() string {
+func (s *Session) Title() string {
 	return s.Name
 }
 
-func (s Session) Window(index uint64) *window.Window {
+func (s *Session) Window(index uint64) *window.Window {
 	for i, w := range s.Windows {
 		if w.Index == index {
 			return s.Windows[i]

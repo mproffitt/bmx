@@ -171,6 +171,13 @@ func NewSessionOrAttach(in map[string]any, includeKubeConfig bool) error {
 	return CreateSession(name, path, command, includeKubeConfig, true)
 }
 
+// Rename a tmux session
+func RenameSession(target, name string) error {
+	return ExecSilent([]string{
+		"rename-session", "-t", target, name,
+	})
+}
+
 // List all panes in a given session
 func SessionPanes(session string) ([]string, error) {
 	args := []string{

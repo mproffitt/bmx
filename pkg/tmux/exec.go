@@ -176,3 +176,9 @@ func SendKeys(target string, keysToSend string) {
 		keysToSend, "C-m",
 	})
 }
+
+func SwitchClient(target string) error {
+	return ExecSilent([]string{
+		"switch-client", "-t", target,
+	})
+}

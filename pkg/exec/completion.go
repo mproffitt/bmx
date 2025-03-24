@@ -288,7 +288,11 @@ func ZshCompletions(in string) (out []Completion, err error) {
 	for _, line := range strings.Split(stdout.String(), "\n") {
 		p := strings.Split(line, " -- ")
 		option := strings.TrimSpace(p[0])
-		description := strings.TrimSpace(p[1])
+
+		var description string
+		if len(p) == 2 {
+			description = strings.TrimSpace(p[1])
+		}
 		if len(option) == 0 {
 			continue
 		}

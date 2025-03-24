@@ -218,6 +218,10 @@ func (m *Model) WithColours(c *config.ColourStyles) *Model {
 	return m
 }
 
+func (m *Model) Reload() tea.Cmd {
+	return m.load()
+}
+
 func (m *Model) load() tea.Cmd {
 	m.sessions = make([]*session.Session, 0)
 	var wg sync.WaitGroup
@@ -227,7 +231,7 @@ func (m *Model) load() tea.Cmd {
 			defer wg.Done()
 			session := session.New(s, m.colours)
 			m.Lock()
-			m.sessions = append(m.sessions, &session)
+			m.sessions = append(m.sessions, session)
 			m.Unlock()
 		}()
 	}

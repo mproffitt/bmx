@@ -23,6 +23,7 @@ import (
 	"github.com/charmbracelet/bubbles/help"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/icons"
 )
 
 type keyMap struct {
@@ -65,7 +66,7 @@ func mapKeys() *keyMap {
 		Delete: key.NewBinding(key.WithKeys("delete", "x"),
 			key.WithHelp("del/x", "Delete current item")),
 		Enter: key.NewBinding(key.WithKeys("enter"),
-			key.WithHelp("↩", "Select current item")),
+			key.WithHelp(icons.Enter, "Select current item")),
 		Help: key.NewBinding(key.WithKeys("?", "f1"),
 			key.WithHelp("?", "Help")),
 
@@ -78,9 +79,9 @@ func mapKeys() *keyMap {
 		SessionMode: key.NewBinding(key.WithKeys("s"),
 			key.WithHelp("s", "Session manager")),
 		ShiftTab: key.NewBinding(key.WithKeys("shift+tab"),
-			key.WithHelp("⇧ ↹", "Previous pane")),
+			key.WithHelp(icons.ShiftTab, "Previous pane")),
 		Tab: key.NewBinding(key.WithKeys("tab"),
-			key.WithHelp("↹", "Next pane")),
+			key.WithHelp(icons.Tab, "Next pane")),
 		ToggleZoom: key.NewBinding(key.WithKeys("z"),
 			key.WithHelp("z", "Toggle viewport zoom")),
 		WindowMode: key.NewBinding(key.WithKeys("w"),

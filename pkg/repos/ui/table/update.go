@@ -20,16 +20,13 @@
 package table
 
 import (
-	"errors"
-	"os"
 	"os/user"
 
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mproffitt/bmx/pkg/components/createpanel"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
-	"github.com/mproffitt/bmx/pkg/exec"
-	"k8s.io/utils/strings/slices"
 )
 
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -37,6 +34,79 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
+	case createpanel.SuggestionsMsg:
+		m.table, cmd = m.table.Update(msg.LastKey)
+		cmds = append(cmds, cmd)
+
+		// Get the suggestions from the table
+		m.getSuggestions(&msg)
+		msg.Focus = createpanel.Button
+
+		// Send the message back to the panel
+		m.panel, cmd = m.panel.Update(msg)
+		cmds = append(cmds, cmd)
+
+	case createpanel.ObserverMsg:
+		// If the current focus was button
+		// when we recieve this message then
+		// we handle the creation of the new
+		// session
+		if msg.Focus == createpanel.Button {
+			current := m.table.HighlightedRow().Data
+			data := make(map[string]any)
+			if map[string]any(current) != nil {
+				for col := range current {
+					data[col] = current[col]
+				}
+			}
+			data["path"] = msg.Path
+			data["command"] = msg.Command
+			if msg.Name != "" {
+				if data["name"] != msg.Name {
+					user, _ := user.Current()
+					data["owner"] = user.Username
+				}
+				data["name"] = msg.Name
+			}
+
+			// TODO: Convert callback to tea.Msg
+			// This was written during the very first incarnation of the application
+			// and as I've learned more about the way bubbletea operates it's become
+			// a redundant methodology. Messages are a cleaner way of handling the
+			// need to call back to parent handling methods
+			return m, m.callback(data, m.config.CreateSessionKubeConfig)
+		}
+
+		var name, path string
+		{
+			if data, ok := m.table.HighlightedRow().Data[columnKeyName]; ok {
+				name = data.(string)
+			}
+			if data, ok := m.table.HighlightedRow().Data[columnKeyPath]; ok {
+				path = data.(string)
+			}
+
+		}
+		if msg.Focus == createpanel.Name {
+			if msg.Name != name {
+				m.table = m.table.WithFilterInputValue(msg.Name)
+			}
+			msg.Path = path
+		}
+
+		// If last key on the panel was enter but
+		// we didn't have the button in focus then
+		// we allow for focusing the button so the
+		// next enter keypress creates the session
+		if msg.LastKey.String() == "enter" {
+			msg.Focus = createpanel.Button
+			msg.Name = name
+			msg.Path = path
+		}
+
+		m.panel, cmd = m.panel.Update(msg)
+		cmds = append(cmds, cmd)
+
 	case tea.KeyMsg:
 
 		// Dialog needs to be handled first as it's an overlay
@@ -56,142 +126,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			}
 			cmds = append(cmds, tea.Quit)
-		case key.Matches(msg, m.keymap.Enter):
-			if m.focus == Button {
-				current := m.table.HighlightedRow().Data
-				data := make(map[string]any)
-				if map[string]any(current) != nil {
-					for col := range current {
-						data[col] = current[col]
-					}
-				}
-				data["path"] = m.inputs.path.Value()
-				data["command"] = m.inputs.command.Value()
-				if filter := m.inputs.filter.Value(); filter != "" {
-					if data["name"] != filter {
-						user, _ := user.Current()
-						data["owner"] = user.Username
-					}
-					data["name"] = filter
-				}
-				return m, m.callback(data, m.config.CreateSessionKubeConfig)
-			}
 		case key.Matches(msg, m.keymap.Help):
 			m.displayHelp()
-		case key.Matches(msg, m.keymap.ShiftTab):
-			if m.current != nil {
-				m.current.Blur()
-			}
-			switch m.focus {
-			case Filter:
-				m.focus = Button
-				m.current = nil
-			case Button:
-				m.focus = Command
-				m.current = &m.inputs.command
-			case Path:
-				m.focus = Filter
-				m.current = &m.inputs.filter
-			case Command:
-				m.focus = Path
-				m.current = &m.inputs.path
-			}
-			if m.current != nil {
-				m.current.Focus()
-			}
-		case key.Matches(msg, m.keymap.Tab):
-			if m.current != nil {
-				m.current.Blur()
-			}
-			switch m.focus {
-			case Filter:
-				m.focus = Path
-				m.current = &m.inputs.path
-			case Path:
-				m.focus = Command
-				m.current = &m.inputs.command
-			case Command:
-				m.current = nil
-				m.focus = Button
-			case Button:
-				m.focus = Filter
-				m.current = &m.inputs.filter
-			}
-			if m.current != nil {
-				m.current.Focus()
-			}
 		case key.Matches(msg, m.keymap.Pagedown, m.keymap.Pageup):
-			fallthrough
-		case key.Matches(msg, m.keymap.Up, m.keymap.Down):
-			if m.focus == Filter {
-				m.current.Blur()
-				m.table, cmd = m.table.Update(msg)
-				cmds = append(cmds, cmd)
-				m.setValueFromTableRow()
-				m.setSuggestions()
-				m.current.Focus()
-				break
-			}
-			// if not filter, fallthrough
-			fallthrough
+			m.table, _ = m.table.Update(msg)
 		default:
-			*m.current, _ = m.current.Update(msg)
-			currentInputValue := m.current.Value()
-			var currentRowValue string
-			{
-				if data, ok := m.table.HighlightedRow().Data[columnKeyName]; ok {
-					currentRowValue = data.(string)
-				}
-			}
-
-			if m.focus == Filter && currentInputValue != currentRowValue {
-				value := m.inputs.filter.Value()
-				m.table = m.table.WithFilterInputValue(value)
-			}
-
-			var (
-				options []exec.Completion
-				err     error
-			)
-			switch m.focus {
-			case Command:
-				// For commands we allow triggering completion from
-				// space, hyphen or slash. This should allow for
-				// collection of sub-commands, options and paths
-				// for command line completion
-				allowed := []string{" ", "-", "/"}
-				if slices.Contains(allowed, msg.String()) {
-					options, err = exec.ZshCompletions(currentInputValue)
-				}
-			case Path:
-				if msg.String() == "/" {
-					options, err = exec.ZshCompletions(currentInputValue)
-				}
-			}
-
-			if err != nil {
-				if !errors.Is(err, exec.MissingZshError{}) {
-					(*m.current).SetValue(err.Error())
-				}
-				break
-			}
-			suggestions := make([]string, len(options))
-			for _, o := range options {
-				// Paths are only allowed directories
-				if m.focus == Path {
-					finfo, err := os.Stat(o.Option)
-					if err != nil || !finfo.IsDir() {
-						continue
-					}
-				}
-				suggestions = append(suggestions, o.Option)
-			}
-
-			// only set new suggestions so we're not overwriting
-			// existing on every keypress
-			if len(suggestions) > 0 {
-				(*m.current).SetSuggestions(suggestions)
-			}
+			m.panel, cmd = m.panel.Update(msg)
+			cmds = append(cmds, cmd)
 		}
 	case dialog.DialogStatusMsg:
 		if msg.Done {

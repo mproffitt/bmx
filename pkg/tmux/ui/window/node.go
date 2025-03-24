@@ -53,6 +53,7 @@ type Node struct {
 	Height       int
 	Index        uint
 	PaneID       *int
+	Title        string
 	Type         NodeType
 	Width        int
 	X            int
@@ -136,6 +137,10 @@ func (n *Node) GetContents() string {
 	return content
 }
 
+func (n *Node) GetName() string {
+	return n.Title
+}
+
 func (n *Node) SetSessionName(session string) {
 	n.session = session
 }
@@ -205,6 +210,12 @@ func (n *Node) Len() int {
 		return l
 	}
 	return 1
+}
+
+// Rename this node
+func (n *Node) Rename(name string) error {
+	n.Title = name
+	return tmux.SetPaneTitle(n.PaneID, name)
 }
 
 // Visual resize of the pane or all panes in window

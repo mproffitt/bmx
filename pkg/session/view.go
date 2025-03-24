@@ -107,6 +107,11 @@ func (m *model) View() string {
 }
 
 func (m *model) viewOverlays(doc string) string {
+	// Always place the toast overlay even if we have other dialogs
+	// so don't retyrn here
+	if m.toast != nil {
+		doc = overlay.PlaceOverlay(1, ((m.height - m.toast.Height) - 3), m.toast.View(), doc, false)
+	}
 	if m.dialog != nil {
 		dw, _ := m.dialog.(*dialog.Dialog).GetSize()
 		w := m.width/2 - max(dw, config.DialogWidth)/2
@@ -119,6 +124,15 @@ func (m *model) viewOverlays(doc string) string {
 		h = m.height/2 - max(h, 10)/2
 
 		return overlay.PlaceOverlay(w, h, m.overlay.View(),
+			doc, false)
+	}
+
+	if m.renameOverlay != nil {
+		w, h := m.renameOverlay.GetSize()
+		w = m.width/2 - max(w, config.DialogWidth)/2
+		h = m.height/2 - max(h, 10)/2
+
+		return overlay.PlaceOverlay(w, h, m.renameOverlay.View(),
 			doc, false)
 	}
 

@@ -26,6 +26,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/toast"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/tmux"
@@ -129,6 +130,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if err := kubernetes.DeleteContext(m.todelete, m.kubeconfig); err != nil {
 				return m, helpers.NewErrorCmd(err)
 			}
+			cmds = append(cmds, toast.NewToastCmd(toast.Warning, "Deleted context "+m.todelete))
 			m.todelete = ""
 			m.reloadContextList()
 		}
@@ -155,7 +157,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if err != nil {
 					return m, helpers.NewErrorCmd(err)
 				}
-
+				cmds = append(cmds, toast.NewToastCmd(toast.Info, "Moved context "+m.tomove))
 				m.reloadContextList()
 
 			case Namespace:

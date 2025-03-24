@@ -20,6 +20,7 @@
 package session
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/charmbracelet/bubbles/list"
@@ -29,7 +30,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/components/overlay"
+	"github.com/mproffitt/bmx/pkg/components/rename"
 	"github.com/mproffitt/bmx/pkg/components/splash"
+	"github.com/mproffitt/bmx/pkg/components/toast"
 	"github.com/mproffitt/bmx/pkg/components/viewport"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
@@ -56,6 +59,7 @@ const (
 	previewPane
 	contextPane
 	overlayPane
+	renamePane
 	dialogp
 	helpd
 )
@@ -85,8 +89,10 @@ type model struct {
 	overlay         *overlay.Container
 	preview         *viewport.Model
 	ready           bool
+	renameOverlay   *rename.Model
 	session         *session.Session
 	splash          *splash.Model
+	toast           *toast.Model
 	window          *tmuxui.Window
 
 	styles styles
@@ -178,8 +184,8 @@ func (m *model) getSessionKubeconfig(session string) string {
 
 func (m *model) handleDialog(status dialog.Status) (tea.Cmd, error) {
 	var (
-		cmd tea.Cmd
-		err error
+		cmds []tea.Cmd
+		err  error
 	)
 	m.dialog = nil
 
@@ -192,21 +198,26 @@ func (m *model) handleDialog(status dialog.Status) (tea.Cmd, error) {
 				if err == nil {
 					err = m.manager.KillSwitch(m.session.Name, m.config.DefaultSession)
 				}
+				cmds = append(cmds, toast.NewToastCmd(toast.Info, "Deleted session "+m.session.Name))
 			}
-			cmd = helpers.ReloadManagerCmd()
 		case windowManager:
-			break
+			err = m.session.KillWindow(m.window.Index)
+			if err == nil {
+				cmds = append(cmds, toast.NewToastCmd(
+					toast.Info,
+					fmt.Sprintf("Deleted window %q with index %d", m.window.Name, m.window.Index)))
+			}
 		}
-		m.list.Select(0)
+		cmds = append(cmds, helpers.ReloadManagerCmd())
 		fallthrough
 	case dialog.Cancel:
 		m.deleting = false
 	}
 
 	if m.overlay != nil {
-		cmd = helpers.OverlayCmd(status)
+		cmds = append(cmds, helpers.OverlayCmd(status))
 	}
-	return cmd, err
+	return tea.Batch(cmds...), err
 }
 
 func (m *model) Ready() bool {

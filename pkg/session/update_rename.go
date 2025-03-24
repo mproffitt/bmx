@@ -19,4 +19,16 @@
 
 package session
 
-func (m *model) rename() {}
+import (
+	"github.com/mproffitt/bmx/pkg/components/rename"
+)
+
+func (m *model) rename() {
+	switch m.active {
+	case sessionManager:
+		m.renameOverlay = rename.New(m.session, m.config)
+	case windowManager:
+		m.renameOverlay = rename.New(m.window, m.config)
+	}
+	m.focused = renamePane
+}

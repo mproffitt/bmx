@@ -151,6 +151,12 @@ func (c *Config) SetSessions(sessions []helpers.Session) error {
 	return c.writeConfig(c.filename)
 }
 
+// Set the default session
+func (c *Config) SetDefaultSession(name string) error {
+	c.DefaultSession = name
+	return c.writeConfig(c.filename)
+}
+
 func (c *Config) createConfig() error {
 	m := NewConfigModel(c)
 	m.createTabContents()

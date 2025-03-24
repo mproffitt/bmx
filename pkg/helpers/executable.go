@@ -25,10 +25,16 @@ import (
 	"path/filepath"
 )
 
+// ExecutableName gets the name of the current running program
 func ExecutableName() string {
 	return filepath.Base(os.Args[0])
 }
 
+// ExecString is primarily used for popups which
+// by default start in the users home directory.
+//
+// This method is used to run popupe in the current terminal
+// directory
 func ExecString() string {
 	executable := ExecutableName()
 	cwd, _ := os.Getwd()

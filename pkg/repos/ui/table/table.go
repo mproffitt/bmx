@@ -31,6 +31,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
+	"github.com/mproffitt/bmx/pkg/components/createpanel"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/repos"
@@ -90,6 +91,7 @@ type Model struct {
 	height    int
 	isOverlay bool
 	keymap    keyMap
+	panel     *createpanel.Model
 	paths     []string
 	rows      []table.Row
 	spinner   *spinner.Model
@@ -100,20 +102,20 @@ type Model struct {
 }
 
 type inputs struct {
+	command textinput.Model
 	filter  textinput.Model
 	path    textinput.Model
-	command textinput.Model
 }
 
 type styles struct {
-	table        lipgloss.Style
-	spinner      lipgloss.Style
-	title        lipgloss.Style
-	text         lipgloss.Style
-	viewport     lipgloss.Style
-	filter       lipgloss.Style
-	button       lipgloss.Style
 	activeButton lipgloss.Style
+	button       lipgloss.Style
+	filter       lipgloss.Style
+	spinner      lipgloss.Style
+	table        lipgloss.Style
+	text         lipgloss.Style
+	title        lipgloss.Style
+	viewport     lipgloss.Style
 }
 
 func New(config *config.Config, callback func(map[string]any, bool) tea.Cmd) *Model {
@@ -165,6 +167,8 @@ func New(config *config.Config, callback func(map[string]any, bool) tea.Cmd) *Mo
 				Underline(true),
 		},
 	}
+	model.panel = createpanel.New(config.Colours()).
+		WithObserver(model)
 	model.inputs.filter.ShowSuggestions = true
 	model.inputs.filter.KeyMap = model.getInputKeyMap()
 	model.inputs.path.ShowSuggestions = true
@@ -207,21 +211,12 @@ func (m *Model) SetSize(width, height int) {
 	m.height = height
 }
 
-func (m *Model) setValueFromTableRow() {
-	selected := m.table.HighlightedRow().Data
-	filter, ok := selected[columnKeyName].(string)
-	if ok {
-		m.inputs.filter.SetValue(filter)
-	}
-	path, ok := selected[columnKeyPath].(string)
-	if ok {
-		m.inputs.path.SetValue(path)
-	}
-}
-
-func (m *Model) setSuggestions() {
+func (m *Model) getSuggestions(msg *createpanel.SuggestionsMsg) {
 	selected := m.table.HighlightedRow().Data
 	values := map[string]any(selected)
+
+	(*msg).Name = make([]string, 0)
+	(*msg).Path = make([]string, 0)
 
 	var (
 		filter, path string
@@ -229,11 +224,11 @@ func (m *Model) setSuggestions() {
 	)
 
 	if filter, ok = values[columnKeyName].(string); ok {
-		m.inputs.filter.SetSuggestions([]string{filter})
+		(*msg).Name = []string{filter}
 	}
 
 	if path, ok = values[columnKeyPath].(string); ok {
-		m.inputs.path.SetSuggestions([]string{path})
+		(*msg).Path = []string{path}
 	}
 }
 

@@ -20,6 +20,7 @@
 package session
 
 import (
+	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -45,14 +46,25 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 		return cmd
 	}
 
+	var t, name string
+
+	switch m.active {
+	case sessionManager:
+		t = "session"
+		name = m.session.Name
+	case windowManager:
+		t = "window"
+		name = fmt.Sprintf("%s with index %d", m.window.Name, m.window.Index)
+	}
+
 	width := config.DialogWidth - 4
-	message := "Cannnot delete the current active session"
+	message := "Cannnot delete the current active " + t
 	// Dialog cannot delete active session, use kill instead
 	m.dialog = dialog.NewOKDialog(wordwrap.String(message, width),
 		m.config, config.DialogWidth)
 	if !m.session.Attached {
 		m.deleting = true
-		message = "Are you sure you want to delete session\n"
+		message = fmt.Sprintf("Are you sure you want to delete %s\n", t)
 		builder := strings.Builder{}
 		builder.WriteString(wordwrap.String(message, width))
 		builder.WriteString(lipgloss.PlaceHorizontal(width, lipgloss.Center,
@@ -60,7 +72,7 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 				Bold(true).
 				Padding(1, 0).
 				Foreground(m.config.Colours().BrightBlue).
-				Render(m.session.Name)))
+				Render(name)))
 		if m.config.CreateSessionKubeConfig {
 			message = wordwrap.String("This will remove the associated kubeconfig"+
 				" and log you out of all clusters\n", width)

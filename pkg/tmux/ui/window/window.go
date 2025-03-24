@@ -21,12 +21,14 @@ package window
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/mproffitt/bmx/pkg/components/icons"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
 )
@@ -43,42 +45,14 @@ const (
 	Zoomed        Flag = 'Z'
 )
 
-var (
-	DigitalNumbers = [10]rune{
-		'🯰', '🯱', '🯲', '🯳', '🯴',
-		'🯵', '🯶', '🯷', '🯸', '🯹',
-	}
-
-	HsquareNumbers = [10]rune{
-		'󰎣', '󰎦', '󰎩', '󰎬', '󰎮',
-		'󰎰', '󰎵', '󰎸', '󰎻', '󰎾',
-	}
-)
-
-const (
-	ActivityIcon       = '󱅫'
-	ActiveTerminalIcon = ''
-	ApplicationIcon    = ''
-	BellIcon           = '󰂞'
-	CurrentIcon        = '󰖯'
-	GitIcon            = '󰊢'
-	HostIcon           = '󰒋'
-	LastIcon           = '󰖰'
-	MarkedIcon         = '󰃀'
-	SilenceIcon        = '󰂛'
-	TerminalIcon       = ''
-	UserIcon           = ''
-	ZoomIcon           = '󰁌'
-)
-
 func getPanesCountAsIcons(panes uint64) string {
 	remainder := panes % 10
 	tens := (panes - remainder) / 10
 	message := ""
 	if tens > 1 {
-		message += string(DigitalNumbers[tens])
+		message += string(icons.DigitalNumbers[tens])
 	}
-	message += string(DigitalNumbers[remainder])
+	message += string(icons.DigitalNumbers[remainder])
 	return message
 }
 
@@ -143,6 +117,15 @@ func new(session, attrStr string) *Window {
 	return &w
 }
 
+func (w *Window) Attach() error {
+	target := fmt.Sprintf("%s:%d", w.Session, w.Index)
+	return tmux.SwitchClient(target)
+}
+
+func (w *Window) GetName() string {
+	return w.Name
+}
+
 func (w *Window) HasFlag(flag Flag) bool {
 	v, ok := w.Flags[flag]
 	if !ok {
@@ -180,30 +163,30 @@ func (w *Window) Title() string {
 
 func (w *Window) Description() string {
 	message := ""
-	current := TerminalIcon
+	current := icons.TerminalIcon
 	if w.Flags[CurrentWindow] {
-		current = ActiveTerminalIcon
+		current = icons.ActiveTerminalIcon
 	}
 	message += string(current)
 
 	if w.Flags[Activity] {
-		message += " " + string(ActivityIcon)
+		message += " " + string(icons.ActivityIcon)
 	}
 	if w.Flags[Bell] {
-		message += " " + string(BellIcon)
+		message += " " + string(icons.BellIcon)
 	}
 
 	if w.Flags[LastWindow] {
-		message += " " + string(LastIcon)
+		message += " " + string(icons.LastIcon)
 	}
 	if w.Flags[Marked] {
-		message += " " + string(MarkedIcon)
+		message += " " + string(icons.MarkedIcon)
 	}
 	if w.Flags[Silence] {
-		message += " " + string(SilenceIcon)
+		message += " " + string(icons.SilenceIcon)
 	}
 	if w.Flags[Zoomed] {
-		message += string(ZoomIcon)
+		message += string(icons.ZoomIcon)
 	}
 	return message + " " + getPanesCountAsIcons(w.PaneCount)
 }
@@ -217,18 +200,13 @@ func ListWindows(session string) []*Window {
 	windows := make([]*Window, 0)
 
 	var l sync.Mutex
-	args := []string{
-		"list-windows", "-t", session, "-F",
-		"#{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}",
-	}
-
-	out, _, err := tmux.Exec(args)
+	w, err := tmux.ListWindows(session)
 	if err != nil {
 		return windows
 	}
 
 	var wg sync.WaitGroup
-	for _, line := range strings.Split(out, "\n") {
+	for _, line := range w {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -241,6 +219,9 @@ func ListWindows(session string) []*Window {
 	}
 	wg.Wait()
 
+	sort.SliceStable(windows, func(i, j int) bool {
+		return windows[i].Index < windows[j].Index
+	})
 	return windows
 }
 

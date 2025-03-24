@@ -131,12 +131,14 @@ func (m *model) switchKeyMessage(msg tea.KeyMsg, sendOverlayUpdate *bool) (cmd t
 			case sessionManager:
 				m.setWindowsItems(m.session.Name)
 				m.active = windowManager
+			case windowManager:
+				m.setSessionItems()
+				m.active = sessionManager
 			}
 			returnEarly = true
 		}
 	case key.Matches(msg, m.keymap.Rename):
-		// TODO: Move to preview panel
-		if m.focused != overlayPane {
+		if m.focused == sessionList {
 			m.rename()
 		}
 

@@ -23,10 +23,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
+// ErrorMsg is a tea message used to instruct the program it is in an error state
 type ErrorMsg struct {
 	Error error
 }
 
+// NewErrorCmd is returned by components that are in error
 func NewErrorCmd(err error) tea.Cmd {
 	return func() tea.Msg {
 		return ErrorMsg{
@@ -35,10 +37,12 @@ func NewErrorCmd(err error) tea.Cmd {
 	}
 }
 
+// OverlayMsg is a tea message that contains information from an overlay window
 type OverlayMsg struct {
 	Message any
 }
 
+// OverlayCmd is the tea command being returned from an overlay
 func OverlayCmd(message any) tea.Cmd {
 	return func() tea.Msg {
 		return OverlayMsg{
@@ -47,36 +51,45 @@ func OverlayCmd(message any) tea.Cmd {
 	}
 }
 
+// ReloadManagerMsg instructs the session manager that it needs to reload components
 type ReloadManagerMsg struct{}
 
+// ReloadManagerCmd is the tea command to trigger a ReloadManagerMsg
 func ReloadManagerCmd() tea.Cmd {
 	return func() tea.Msg {
 		return ReloadManagerMsg{}
 	}
 }
 
+// ReloadWindowsMsg triggers the relaoding of session windows
 type ReloadWindowsMsg struct{}
 
+// ReloadWindowsCmd triggers the sending of a ReloadWindowsMsg
 func ReloadWindowsCmd() tea.Cmd {
 	return func() tea.Msg {
 		return ReloadWindowsMsg{}
 	}
 }
 
+// SaveMsg triggers the saving of session state
 type SaveMsg struct{}
 
+// SaveSessionsCmd sends the message that sessions should be saved to config
 func SaveSessionsCmd() tea.Cmd {
 	return func() tea.Msg {
 		return SaveMsg{}
 	}
 }
 
+// UseOverlay is the interface used to instruct the main window that the
+// current component can use the overlay subsystem
 type UseOverlay interface {
 	Overlay() UseOverlay
 	Update(tea.Msg) (tea.Model, tea.Cmd)
 	GetSize() (int, int)
 }
 
+// Session is a light wrapper for a tmux session
 type Session struct {
 	Command string   `yaml:"command"`
 	Name    string   `yaml:"name"`
@@ -84,6 +97,7 @@ type Session struct {
 	Windows []Window `yaml:"windows"`
 }
 
+// Window is a light wrapper for a tmux window
 type Window struct {
 	Layout string `yaml:"layout"`
 	Name   string `yaml:"name"`
@@ -91,6 +105,7 @@ type Window struct {
 	Panes  []Pane `yaml:"panes"`
 }
 
+// Pane is a light wrapper for a pane within a window
 type Pane struct {
 	CurrentCommand string `yaml:"pane_current_command"`
 	CurrentPath    string `yaml:"pane_current_path"`

@@ -84,3 +84,11 @@ func PaneCurrentCommand(sessionPane string) string {
 
 	return out
 }
+
+// Sets the title for the pane
+func SetPaneTitle(paneId *int, name string) error {
+	pane := fmt.Sprintf("%%%d", *paneId)
+	return ExecSilent([]string{
+		"select-pane", "-t", pane, "-T", name,
+	})
+}

@@ -70,10 +70,21 @@ func HasWindow(target string, window uint) bool {
 }
 
 // KillWindow kills the target window
-func KillWindow(target string) {
-	_ = ExecSilent([]string{
+func KillWindow(target string) error {
+	return ExecSilent([]string{
 		"kill-window", "-t", target,
 	})
+}
+
+// ListWindows
+func ListWindows(target string) ([]string, error) {
+	args := []string{
+		"list-windows", "-t", target, "-F",
+		"#{window_index},#{window_flags},#{window_name},#{window_active},#{window_panes}",
+	}
+
+	out, _, err := Exec(args)
+	return strings.Split(out, "\n"), err
 }
 
 // RenameWindow renames the target window

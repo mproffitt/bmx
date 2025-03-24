@@ -49,7 +49,6 @@ func (m *Model) View() string {
 	if m.isOverlay {
 		subtract = 11
 	}
-	m.setSuggestions()
 	var content string
 	{
 		viewport := viewport.New(m.width-4, m.height-subtract)
@@ -57,32 +56,9 @@ func (m *Model) View() string {
 		content = m.styles.viewport.Padding(0, 0, 1, 2).Render(viewport.View())
 		body.WriteString(content + "\n")
 	}
+	m.panel.SetWidth(m.width)
 
-	filter := m.styles.filter.Width(m.columns[0].Width()).Render(m.inputs.filter.View())
-
-	var path string
-	{
-		pathWidth := m.width - 2 - m.columns[0].Width() - 2
-		m.inputs.path.Width = pathWidth - 4
-		path = m.styles.filter.Width(pathWidth).Render(m.inputs.path.View())
-	}
-	filterLine := lipgloss.JoinHorizontal(lipgloss.Bottom, filter, path)
-
-	var command string
-	{
-		cmdWidth := m.width - 20
-		m.inputs.command.Width = cmdWidth - 2
-		command = m.styles.filter.Width(cmdWidth).Render(m.inputs.command.View())
-
-		button := m.styles.button.Render("create")
-		if m.focus == Button {
-			button = m.styles.activeButton.Render("create")
-		}
-		command = lipgloss.JoinHorizontal(lipgloss.Top, command, button)
-	}
-	filterLine = lipgloss.JoinVertical(lipgloss.Left, filterLine, command)
-
-	body.WriteString(filterLine)
+	body.WriteString(m.panel.View())
 
 	doc := m.styles.table.Render(body.String())
 	if m.dialog != nil {

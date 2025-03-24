@@ -23,7 +23,9 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mproffitt/bmx/pkg/components/createpanel"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
+	"github.com/mproffitt/bmx/pkg/components/toast"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
@@ -51,8 +53,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch m.active {
 	case sessionManager:
-		if selected, ok := m.list.SelectedItem().(session.Session); ok {
-			m.session = &selected
+		if selected, ok := m.list.SelectedItem().(*session.Session); ok {
+			m.session = selected
 		}
 		if m.session != nil {
 			m.list.Select(int((*m.session).Index))
@@ -74,6 +76,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 
+		if m.renameOverlay != nil {
+			m.renameOverlay, cmd = m.renameOverlay.Update(msg)
+			if m.renameOverlay == nil {
+				m.focused = sessionList
+				cmd = m.manager.Reload()
+			}
+			return m, cmd
+		}
+
 		// Main window key handling
 		var early bool
 		cmd, early, err = m.switchKeyMessage(msg, &sendOverlayUpdate)
@@ -89,8 +100,15 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.list.SetDelegate(m.styles.delegates.normal)
 			cmds = append(cmds, cmd)
 			if m.dialog == nil && key.Matches(msg, m.keymap.Enter) {
-				err = m.session.Attach()
-				cmds = append(cmds, tea.Quit)
+				switch m.active {
+				case sessionManager:
+					err = m.session.Attach()
+				case windowManager:
+					err = m.window.Attach()
+				}
+				if err == nil {
+					cmds = append(cmds, tea.Quit)
+				}
 			}
 		case previewPane:
 			m.preview, cmd = m.preview.Update(msg)
@@ -117,6 +135,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			_, cmd = (*m.overlay.Parent).Update(msg)
 			m.focused = m.overlay.Previous
 			m.overlay = nil
+			cmds = append(cmds, cmd)
+		}
+	case createpanel.ObserverMsg:
+		if m.overlay != nil {
+			_, cmd = m.overlay.Model.Update(msg)
 			cmds = append(cmds, cmd)
 		}
 	case dialog.DialogStatusMsg:
@@ -165,6 +188,9 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case helpers.ReloadManagerMsg:
 		m.resize()
 		m.setItems()
+		if m.list.Index() >= len(m.list.Items()) {
+			m.list.Select(0)
+		}
 	case helpers.ErrorMsg:
 		if m.focused == overlayPane {
 			m.focused = m.overlay.Previous
@@ -173,6 +199,12 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		err = msg.Error
 	case helpers.SaveMsg:
 		cmd = m.save()
+		cmds = append(cmds, cmd, toast.NewToastCmd(toast.Success, "Sessions saved"))
+	case toast.NewToastMsg:
+		m.toast = toast.New(msg.Type, msg.Message, m.config.Colours())
+		cmds = append(cmds, m.toast.Init())
+	case toast.TickMsg:
+		m.toast, cmd = m.toast.Update(msg)
 		cmds = append(cmds, cmd)
 	}
 
