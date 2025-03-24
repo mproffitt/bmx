@@ -162,6 +162,9 @@ func (m *model) Init() tea.Cmd {
 	return tea.Batch(m.splash.Init(), m.manager.Init())
 }
 
+// Overlay is used to present the overlay for creating new sessions
+//
+// TODO: Expand this to allow creating new windows
 func (m *model) Overlay() helpers.UseOverlay {
 	repos := table.New(m.config, repos.RepoCallback)
 	width := int(math.Ceil(float64(m.width) * .8))

@@ -88,6 +88,9 @@ func (m *model) switchKeyMessage(msg tea.KeyMsg, sendOverlayUpdate *bool) (cmd t
 	case key.Matches(msg, m.keymap.CtrlN):
 		// Create a New session by launching the create session
 		// pane in an overlay window
+		//
+		// TODO: This currently does not support creating new windows
+		// see Session::Overlay for where logic needs to be implemeted
 		model := tea.Model(m)
 		m.overlay = overlay.New(&model, m.focused)
 		cmd = m.overlay.Model.(tea.Model).Init()
@@ -154,6 +157,11 @@ func (m *model) switchKeyMessage(msg tea.KeyMsg, sendOverlayUpdate *bool) (cmd t
 				m.focused = overlayPane
 			}
 		case previewPane:
+			// TODO: This is currently only used for zooming the given
+			// pane as part of the preview window.
+			// This can be piggy-backed on to allow splitting and
+			// deleting panes by providing options for s&x, S&X where
+			// S & X provide options without the dialog.
 			key := msg.String()
 			if len(key) == 1 && key[0] >= '0' && key[0] <= '9' {
 				m.lastch = (uint(key[0]-'0') + 9) % 10

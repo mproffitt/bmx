@@ -80,10 +80,9 @@ func PlaceOverlay(
 	}
 
 	if fgWidth >= bgWidth && fgHeight >= bgHeight {
-		// FIXME: return fg or bg?
 		return fg
 	}
-	// TODO: allow placement outside of the bg box?
+
 	x = clamp(x, 0, bgWidth-fgWidth)
 	y = clamp(y, 0, bgHeight-fgHeight)
 

@@ -62,6 +62,11 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 	// Dialog cannot delete active session, use kill instead
 	m.dialog = dialog.NewOKDialog(wordwrap.String(message, width),
 		m.config, config.DialogWidth)
+
+	// TODO: This currently blocks deleting windows in the active session which isn't
+	// really what I'm looking for. Deletion of any but the current active window
+	// should be feasible so may take a little more configuration to make this work
+	// in all scenarios
 	if !m.session.Attached {
 		m.deleting = true
 		message = fmt.Sprintf("Are you sure you want to delete %s\n", t)
