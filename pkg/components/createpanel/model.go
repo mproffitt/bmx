@@ -168,7 +168,8 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 				m.inputs.name.SetValue(msg.Name[0])
 			}
 
-			m.inputs.name.SetSuggestions(msg.Name)
+			current := m.inputs.path.AvailableSuggestions()
+			m.inputs.name.SetSuggestions(append(current, msg.Name...))
 		}
 
 		if len(msg.Path) > 0 {
@@ -176,7 +177,8 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 			if len(path) == 0 || !strings.HasPrefix(msg.Path[0], path) {
 				m.inputs.path.SetValue(msg.Path[0])
 			}
-			m.inputs.path.SetSuggestions(msg.Path)
+			current := m.inputs.path.AvailableSuggestions()
+			m.inputs.path.SetSuggestions(append(current, msg.Path...))
 		}
 	case tea.KeyMsg:
 		switch {
@@ -244,12 +246,28 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 				break
 			}
 
+			previous := m.current.Value()
 			*m.current, cmd = m.current.Update(msg)
 			cmds = append(cmds, cmd)
 
+			keys := []key.Binding{
+				(*m.current).KeyMap.DeleteCharacterBackward,
+				(*m.current).KeyMap.DeleteWordBackward,
+				(*m.current).KeyMap.DeleteBeforeCursor,
+			}
+			// Handle resetting suggestions when backspoce
+			// deletes a space from the input string
+			if key.Matches(msg, keys...) {
+				current := m.current.Value()
+				if previous[len(previous)-1] == ' ' && current[len(current)-1] != ' ' {
+					(*m.current).SetSuggestions([]string{})
+				}
+			}
+
 			name := m.inputs.name.Value()
 			path := m.inputs.path.Value()
-			if len(name) == 0 && len(path) > 0 {
+			// If we empty out name, reset path too
+			if m.focus == Name && len(name) == 0 && len(path) > 0 {
 				m.inputs.path.SetValue("")
 			}
 
@@ -276,10 +294,12 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 				// for command line completion
 				allowed := []string{" ", "-", "/"}
 				if slices.Contains(allowed, msg.String()) {
+					(*m.current).SetSuggestions([]string{})
 					options, err = exec.ZshCompletions(value)
 				}
 			case Path:
 				if msg.String() == "/" {
+					(*m.current).SetSuggestions([]string{})
 					options, err = exec.ZshCompletions(value)
 				}
 			}

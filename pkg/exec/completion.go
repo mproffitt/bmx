@@ -29,48 +29,55 @@ import (
 	"time"
 )
 
+// MissingZshError is returned when Zsh is not found in the users environment
+//
+// Applications implementing this package can use this todisable the completion
+// system
 type MissingZshError struct{}
 
 func (e MissingZshError) Error() string {
 	return "missing zsh"
 }
 
+// ExecTimeoutError is returned when the completion takes longer than the
+// anticipated execution time of `maxDuration`
+//
+// Errors of this type would normally be transient as the completion system
+// generally returns long before the deadline is reached.
 type ExecTimeoutError struct{}
 
 func (e ExecTimeoutError) Error() string {
 	return "deadline exceeded"
 }
 
+// Completion represents a completion object
 type Completion struct {
 	Option      string
 	Description string
 }
 
-// We use a context timeout for executing shell completions
-// by default this is set to 5 seconds to allow commands which
-// rely on remote executions such as kubectl time to complete.
+// We use a context timeout for executing shell completions by default this is
+// set to 5 seconds to allow commands which rely on remote executions such as
+// kubectl time to complete.
 const maxDuration = 5 * time.Second
 
-// The Capture script is a slightly modified version of the
-// `zsh-capture-completion` script from
-// https://github.com/Valodim/zsh-capture-completion.
+// The Capture script is a modified version of the `zsh-capture-completion`
+// script from https://github.com/Valodim/zsh-capture-completion.
 //
-// This script can be bound to an input field and will
-// execute the completion commands for a given input.
+// This script can be bound to an input field and will execute the completion
+// commands for a given input.
 //
-// It should be noted that it is not worth binding to every
-// keypress, but should be bound to the space character, and
-// optionally hyphen `-` and slash `/` characters.
+// It should be noted that it is not worth binding to every keypress, but should
+// be bound to the space character, and optionally hyphen `-` and slash `/`
+// characters.
 //
-// The script will only work in environments where ZSH is
-// installed although this does not have to be the users primary
-// shell as long as the completions are also installed alongside
+// The script will only work in environments where ZSH is installed although
+// this does not have to be the users primary shell as long as the completions
+// are also installed alongside
 //
-// Modifications are made to ensure custom completions defined
-// by zsh.completion and oh-my-zsh are loaded and an additional
-// set of kubernetes specific command completions are also
-// sourced.
-
+// Modifications are made to ensure custom completions defined by zsh.completion
+// and oh-my-zsh are loaded and an additional set of kubernetes specific command
+// completions are also sourced.
 const capture = `
 #!/bin/zsh
 zmodload zsh/zpty || { echo 'error: missing module zsh/zpty' >&2; exit 1 }
@@ -107,6 +114,8 @@ fi
 autoload compinit
 compinit -d ~/.zcompdump_capture
 
+# Load in any custom commands we want to ensure are
+# part of the completion system
 typeset -A cmds=(
   [kubectl]=''source <(kubectl completion zsh)''
   [stern]=''source <(stern --completion=zsh)''
@@ -122,9 +131,13 @@ for key value in ${(kv)cmds}; do
   fi
 done
 
-# never run a command
+# disable any option to execute the command within
+# this script by disabling carriage return and
+# line feed characters
 bindkey ''^M'' undefined
 bindkey ''^J'' undefined
+
+# Ensure TAB is bound to complete-word
 bindkey ''^I'' complete-word
 
 # send a line with null-byte at the end before and after completions are output
@@ -231,11 +244,18 @@ done
 return 2
 `
 
+// HasZsh returns true if ZSH is installed and accessible through $PATH
 func HasZsh() bool {
 	_, err := exec.LookPath("zsh")
 	return err != nil
 }
 
+// ZshCompletions matches completions based on the `in` string.
+//
+// This triggers the completion script and captures the completions given by
+// the ZSH subshell environment, returning a slice of Completion objects which
+// contain the completion option and an optional description if one is provided
+// for that option.
 func ZshCompletions(in string) (out []Completion, err error) {
 	// Check to see if zsh exists in the users environment
 	var zsh string
@@ -296,13 +316,45 @@ func ZshCompletions(in string) (out []Completion, err error) {
 		if len(option) == 0 {
 			continue
 		}
-		if in[len(in)-1] == '-' && option[0] == '-' {
-			option = option[1:]
-		}
+
+		// When handling hyphens, we need to strip from the start of the option any
+		// that have already been typed.
+		//
+		// This means that we cannot use strings.TrimLeft to complete it as that
+		// will simply remove all leading hyphens causing a mismatch between
+		// what was typed and the option being presented as a suggestion to the
+		// user
+		//
+		// We solve this by running the string through a custom function for
+		// trimming hyphens given below.
+		option = trimHyphens(in, option)
+		option = strings.TrimPrefix(option, in)
+
 		out = append(out, Completion{
 			Option:      in + option,
 			Description: description,
 		})
 	}
 	return
+}
+
+// This function trims matching hyphens from the
+// start of `b` that are found at the end of `a`
+func trimHyphens(a, b string) string {
+	i, j := len(a)-1, 0
+	var trim bool
+	for {
+		if i == 0 || j >= len(b) {
+			break
+		} else if a[i] != '-' || b[j] != '-' {
+			trim = true
+			break
+		}
+		i--
+		j++
+	}
+	if trim {
+		return b[j:]
+	}
+	return b
 }
