@@ -45,6 +45,13 @@ var loadCmd = &cobra.Command{
 	Long:  `Load sessions saved previously from the manager into tmux`,
 
 	Run: func(cmd *cobra.Command, args []string) {
+		if tmux.IsRunning() {
+			log.Warn("tmux server is currently running. will not continue")
+			if bmxConfig.DefaultSession != "" {
+				fmt.Fprintf(os.Stdout, bmxConfig.DefaultSession)
+			}
+			return
+		}
 		for !tmux.IsRunning() {
 			if err := startTmux(); err != nil {
 				log.Fatal("failed to start tmux server", "error", err)

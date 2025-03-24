@@ -337,10 +337,12 @@ func (m *Model) View() string {
 	name := m.styles.input.Width(nameWidth).Render(m.inputs.name.View())
 	path := m.styles.input.Width(pathWidth).Render(m.inputs.path.View())
 	command := m.styles.input.Width(commandWidth).Render(m.inputs.command.View())
-	button := m.styles.button.Render("create")
+
+	style := m.styles.button
 	if m.focus == Button {
-		button = m.styles.active.Render("create")
+		style = m.styles.active
 	}
+	button := style.Render("create")
 
 	nameLine := lipgloss.JoinHorizontal(lipgloss.Top, name, path)
 	commandLine := lipgloss.JoinHorizontal(lipgloss.Top, command, button)
