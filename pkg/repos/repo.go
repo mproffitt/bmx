@@ -110,8 +110,18 @@ func RepoCallback(data map[string]any, useKubeConfig bool) tea.Cmd {
 			path, _ := os.UserHomeDir()
 			data["path"] = path
 		}
+
+		_, err := os.Stat(data["path"].(string))
+		if os.IsNotExist(err) {
+			err = os.Mkdir(data["path"].(string), 0750)
+		}
+
+		if err != nil {
+			return helpers.NewErrorCmd(err)
+		}
+
 		if err := tmux.NewSessionOrAttach(data, useKubeConfig); err != nil {
-			return helpers.ErrorMsg{Error: err}
+			return helpers.NewErrorCmd(err)
 		}
 		return tea.Quit()
 	}

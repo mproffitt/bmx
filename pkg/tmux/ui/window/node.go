@@ -51,8 +51,8 @@ const (
 type Node struct {
 	Children     []*Node
 	Height       int
-	Index        uint
-	PaneID       *int
+	Index        *uint
+	PaneID       *uint
 	Title        string
 	Type         NodeType
 	Width        int
@@ -68,7 +68,7 @@ type Node struct {
 }
 
 // Finds the pane with the given ID
-func (n *Node) FindPane(id int) *Node {
+func (n *Node) FindPane(id uint) *Node {
 	if n.HasChildren() {
 		for _, v := range n.Children {
 			if other := v.FindPane(id); other != nil {
@@ -76,7 +76,7 @@ func (n *Node) FindPane(id int) *Node {
 			}
 		}
 	}
-	if id == *n.PaneID {
+	if id == *n.Index {
 		return n
 	}
 	return nil
@@ -113,7 +113,7 @@ func (n *Node) GetContents() string {
 		err     error
 	)
 	if n.PaneID != nil {
-		content, err = tmux.CapturePane(fmt.Sprintf("%%%d", *n.PaneID), n.Width)
+		content, err = tmux.CapturePane(fmt.Sprintf("%%%d", *n.PaneID))
 		if err != nil {
 			content = err.Error()
 		}

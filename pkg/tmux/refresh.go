@@ -21,7 +21,6 @@ package tmux
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -112,6 +111,6 @@ func SendVars(varsToSend []string) {
 				"send-keys", "-t", sessionPane, "fg", "C-m",
 			})
 		}
-		fmt.Fprintf(os.Stdout, "Refreshed pane '%q\n", sessionPane)
+		log.Info("refreshed", "pane", sessionPane)
 	}
 }

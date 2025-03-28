@@ -25,6 +25,9 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/mproffitt/bmx/pkg/components/createpanel"
+	"github.com/mproffitt/bmx/pkg/components/toast"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
@@ -54,7 +57,7 @@ type Session struct {
 func New(session string, c *config.ColourStyles) *Session {
 	parts := strings.Split(session, ",")
 
-	details := Session{
+	s := Session{
 		Attached: parts[3] != "0",
 		Name:     parts[0],
 		Group:    parts[4],
@@ -62,22 +65,31 @@ func New(session string, c *config.ColourStyles) *Session {
 		colours:  c,
 	}
 	count, _ := strconv.Atoi(parts[1])
-	details.NumWindows = count
+	s.NumWindows = count
 
 	t, err := strconv.ParseInt(parts[2], 10, 64)
 	{
 		if err != nil {
 			t = time.Now().Unix()
 		}
-		details.Created = time.Unix(t, 0)
+		s.Created = time.Unix(t, 0)
 	}
-	details.Windows = window.ListWindows(details.Name)
-	return &details
+	s.Windows = window.ListWindows(s.Name)
+	return &s
 }
 
 // Attach to the current session
 func (s *Session) Attach() error {
 	return tmux.AttachSession(s.Name)
+}
+
+// CreateWindow
+func (s *Session) CreateWindow(msg createpanel.ObserverMsg) tea.Cmd {
+	err := tmux.CreateWindow(s.Name, msg.Name, msg.Path, msg.Command, false)
+	if err != nil {
+		return helpers.NewErrorCmd(err)
+	}
+	return toast.NewToastCmd(toast.Success, fmt.Sprintf("Window %q created successfully", msg.Name))
 }
 
 // Get the description of this session

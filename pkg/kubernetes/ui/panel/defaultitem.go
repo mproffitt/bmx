@@ -27,6 +27,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 )
@@ -116,9 +117,13 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	}
 
 	if symbol != "" {
-		fmt.Fprintf(w, "%s%s\n %s", symbol, stitle, sdesc) //nolint: errcheck
+		if _, err := fmt.Fprintf(w, "%s%s\n %s", symbol, stitle, sdesc); err != nil {
+			log.Error("failed to write to delegate", "error", err, "symbol", symbol, "title", stitle, "description", sdesc)
+		}
 		return
 	}
 
-	fmt.Fprintf(w, "%s\n%s", stitle, sdesc) //nolint: errcheck
+	if _, err := fmt.Fprintf(w, "%s\n%s", stitle, sdesc); err != nil {
+		log.Error("failed to write to delegate", "error", err, "title", stitle, "description", sdesc)
+	}
 }

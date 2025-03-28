@@ -45,6 +45,12 @@ const (
 	Zoomed        Flag = 'Z'
 )
 
+type IndexOutOfRangeErr struct{}
+
+func (e IndexOutOfRangeErr) Error() string {
+	return "out of range"
+}
+
 func getPanesCountAsIcons(panes uint64) string {
 	remainder := panes % 10
 	tens := (panes - remainder) / 10
@@ -110,6 +116,8 @@ func new(session, attrStr string) *Window {
 	}
 	w.PaneCount, _ = strconv.ParseUint(attributes[4], 10, 8)
 	w.layout, _ = tmux.GetWindowLayout(fmt.Sprintf("%s:%d", w.Session, w.Index))
+
+	// Parse the layout
 	if _, err := w.parse(w.layout); err != nil {
 		log.Debug("error parsing layout ", w.layout)
 		return nil
@@ -193,6 +201,19 @@ func (w *Window) Description() string {
 
 func (w *Window) FilterValue() string {
 	return w.Name
+}
+
+func (w *Window) FindPane(index uint) *Node {
+	return w.root.FindPane(index)
+}
+
+func (w *Window) GetPanes() ([]string, error) {
+	return tmux.SessionPanes(fmt.Sprintf("%s:%d", w.Session, w.Index))
+}
+
+func (w *Window) GetPane(index uint) string {
+	pane := w.root.FindPane(index)
+	return pane.GetContents()
 }
 
 // List all windows in a given session

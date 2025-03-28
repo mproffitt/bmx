@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	bmx "github.com/mproffitt/bmx/pkg/exec"
-	"github.com/muesli/reflow/truncate"
 )
 
 // Exec wraps the exec command with `tmux` as the
@@ -61,7 +60,7 @@ func ExecSilent(args []string) error {
 // If the value of truncateWidth is not equal to 0,
 // this method will attempt to truncate each line to the given width
 // preserving ansi escape sequences where present
-func CapturePane(target string, truncateWidth int) (string, error) {
+func CapturePane(target string) (string, error) {
 	args := []string{
 		"capture-pane", "-ep", "-t", target,
 	}
@@ -70,14 +69,6 @@ func CapturePane(target string, truncateWidth int) (string, error) {
 		return "", err
 	}
 
-	if truncateWidth > 0 {
-		builder := strings.Builder{}
-		for _, line := range strings.Split(output, "\n") {
-			line = truncate.String(line, uint(truncateWidth))
-			builder.WriteString(line + "\n")
-		}
-		output = builder.String()
-	}
 	return output, nil
 }
 

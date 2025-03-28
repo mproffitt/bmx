@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/components/viewport"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/exec"
 	"github.com/mproffitt/bmx/pkg/helpers"
@@ -28,6 +29,13 @@ const (
 	Path
 	Command
 	Button
+)
+
+type ViewAs int
+
+const (
+	Embedded ViewAs = iota
+	Overlay
 )
 
 // CreateOutputMsg contains the values from
@@ -66,14 +74,18 @@ func ObserverCmd(msg ObserverMsg) tea.Cmd {
 }
 
 type Model struct {
+	as       ViewAs
 	colours  config.ColourStyles
 	current  *textinput.Model
 	focus    Focus
+	height   int
 	inputs   inputs
 	keymap   keyMap
 	observer Observing
-	width    int
 	styles   styles
+	title    string
+	titlepos viewport.TitlePos
+	width    int
 }
 
 type inputs struct {
@@ -90,13 +102,17 @@ type styles struct {
 
 func New(colours config.ColourStyles) *Model {
 	model := Model{
+		as:      Embedded,
 		colours: colours,
+		height:  10,
 		inputs: inputs{
 			command: textinput.New(),
 			name:    textinput.New(),
 			path:    textinput.New(),
 		},
-		keymap: mapKeys(),
+		keymap:   mapKeys(),
+		title:    "create new object",
+		titlepos: viewport.None,
 		styles: styles{
 			active: lipgloss.NewStyle().
 				Foreground(colours.BrightRed).
@@ -133,13 +149,21 @@ func (m *Model) updateKeymap(input *textinput.Model) {
 	(*input).KeyMap.PrevSuggestion = m.keymap.Up
 }
 
+func (m *Model) GetSize() (int, int) {
+	return m.width, m.height
+}
+
 func (m *Model) Init() tea.Cmd { return nil }
+
+func (m *Model) Overlay() helpers.UseOverlay {
+	return m.WithViewAs(Overlay)
+}
 
 func (m *Model) SetWidth(width int) {
 	m.width = width
 }
 
-func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	var cmds []tea.Cmd
 
@@ -229,7 +253,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 				m.current.Focus()
 			}
 		case key.Matches(msg, m.keymap.Up, m.keymap.Down):
-			if m.focus == Name {
+			if m.focus == Name && m.observer != nil {
 				m.observer, cmd = m.observer.Update(SuggestionsMsg{
 					Focus:   m.focus,
 					LastKey: msg,
@@ -340,8 +364,19 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 	return m, tea.Batch(cmds...)
 }
 
+func (m *Model) WithViewAs(as ViewAs) *Model {
+	m.as = as
+	return m
+}
+
 func (m *Model) WithObserver(observer Observing) *Model {
 	m.observer = observer
+	return m
+}
+
+func (m *Model) WithTitle(title string, pos viewport.TitlePos) *Model {
+	m.title = title
+	m.titlepos = pos
 	return m
 }
 
@@ -349,6 +384,11 @@ func (m *Model) View() string {
 	nameWidth := int(float64(m.width) * .33)
 	pathWidth := int((float64(m.width) * .66) - 2)
 	commandWidth := m.width - 20
+
+	if m.as == Overlay {
+		pathWidth -= 2
+		commandWidth -= 2
+	}
 
 	m.inputs.name.Width = nameWidth
 	m.inputs.path.Width = pathWidth
@@ -368,7 +408,18 @@ func (m *Model) View() string {
 	commandLine := lipgloss.JoinHorizontal(lipgloss.Top, command, button)
 	content := lipgloss.JoinVertical(lipgloss.Left, nameLine, commandLine)
 
-	return content
+	if m.as == Embedded {
+		return content
+	}
+
+	viewport := viewport.New(m.colours, m.width, m.height)
+	viewport.SetTitle(m.title, m.titlepos)
+	viewport.SetContent(content)
+	viewport.BorderStyle(lipgloss.HiddenBorder())
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(m.colours.Black).
+		Render(viewport.View())
 }
 
 func (m *Model) getState(msg tea.KeyMsg) ObserverMsg {

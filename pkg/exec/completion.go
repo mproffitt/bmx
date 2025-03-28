@@ -27,6 +27,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/charmbracelet/log"
 )
 
 // MissingZshError is returned when Zsh is not found in the users environment
@@ -276,13 +278,20 @@ func ZshCompletions(in string) (out []Completion, err error) {
 			return
 		}
 	}
-	defer os.Remove(tmpFile.Name())
+	name := tmpFile.Name()
+	defer func() {
+		if err := os.Remove(name); err != nil {
+			log.Error("failed to clean up temporary file", "tmpfile", name, "error", err)
+		}
+	}()
 
 	{
 		if _, err = tmpFile.Write([]byte(capture)); err != nil {
 			return
 		}
-		tmpFile.Close()
+		if err := tmpFile.Close(); err != nil {
+			log.Error("failed to close file", "name", name, "error", err)
+		}
 	}
 
 	var stdout, stderr strings.Builder

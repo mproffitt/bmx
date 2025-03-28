@@ -45,6 +45,16 @@ func HasPane(target string, pane uint) bool {
 	return slices.Contains(panes, fmt.Sprintf("%d", pane))
 }
 
+// GetPaneIndex gets a pane index for a given paneId
+func GetPaneIndex(id uint) uint {
+	out, _, _ := Exec([]string{
+		"display-message", "-t", fmt.Sprintf("%%%d", id),
+		"-p", "-F", "#{pane_index}",
+	})
+	uid, _ := strconv.ParseUint(out, 10, 64)
+	return uint(uid)
+}
+
 // Gets the PID of the target pane
 func GetPanePid(target string) int32 {
 	out, _, err := Exec([]string{
@@ -86,7 +96,7 @@ func PaneCurrentCommand(sessionPane string) string {
 }
 
 // Sets the title for the pane
-func SetPaneTitle(paneId *int, name string) error {
+func SetPaneTitle(paneId *uint, name string) error {
 	pane := fmt.Sprintf("%%%d", *paneId)
 	return ExecSilent([]string{
 		"select-pane", "-t", pane, "-T", name,

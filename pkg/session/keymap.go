@@ -40,6 +40,9 @@ type keyMap struct {
 	WindowMode  key.Binding
 	SessionMode key.Binding
 	Rename      key.Binding
+
+	SplitHorizontal key.Binding
+	SplitVertical   key.Binding
 }
 
 func (k *keyMap) ShortHelp() []key.Binding {
@@ -52,7 +55,7 @@ func (k *keyMap) FullHelp() [][]key.Binding {
 			k.CtrlN, k.CtrlS, k.Delete, k.Enter, k.Help, k.HideContext, k.SessionMode,
 		},
 		{
-			k.Quit, k.ShiftTab, k.Tab, k.ToggleZoom, k.WindowMode, k.Rename,
+			k.Quit, k.ShiftTab, k.Tab, k.ToggleZoom, k.WindowMode, k.Rename, k.SplitHorizontal, k.SplitVertical,
 		},
 	}
 }

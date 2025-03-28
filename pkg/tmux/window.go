@@ -21,6 +21,7 @@ package tmux
 
 import (
 	"fmt"
+	"os"
 	"slices"
 	"strings"
 )
@@ -33,9 +34,12 @@ func ApplyLayout(target, layout string) error {
 }
 
 // Create a new window
-func CreateWindow(target, path, command string, force bool) error {
+func CreateWindow(target, name, path, command string, force bool) error {
 	args := []string{
 		"new-window", "-d", "-t", target,
+	}
+	if name != "" {
+		args = append(args, "-n", name)
 	}
 	if force {
 		args = append(args, "-k")
@@ -43,6 +47,16 @@ func CreateWindow(target, path, command string, force bool) error {
 	if path != "" {
 		args = append(args, "-c", path)
 	}
+
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		err = os.Mkdir(path, 0750)
+	}
+
+	if err != nil {
+		return err
+	}
+
 	if command != "" {
 		args = append(args, command)
 	}

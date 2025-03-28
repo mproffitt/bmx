@@ -22,6 +22,7 @@ package session
 import (
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/components/overlay"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes/ui/panel"
@@ -55,7 +56,19 @@ func (m *model) switchKeyMessage(msg tea.KeyMsg, sendOverlayUpdate *bool) (cmd t
 			m.overlay = nil
 			returnEarly = true
 		default:
-			cmds = append(cmds, tea.Quit)
+			if msg.String() != "esc" {
+				cmds = append(cmds, tea.Quit)
+			}
+
+			switch m.active {
+			case windowManager:
+				// switch back to session manager
+				m.setSessionItems()
+				m.active = sessionManager
+				returnEarly = true
+			default:
+				cmds = append(cmds, tea.Quit)
+			}
 		}
 	case key.Matches(msg, m.keymap.Tab):
 		switch m.focused {
@@ -88,9 +101,6 @@ func (m *model) switchKeyMessage(msg tea.KeyMsg, sendOverlayUpdate *bool) (cmd t
 	case key.Matches(msg, m.keymap.CtrlN):
 		// Create a New session by launching the create session
 		// pane in an overlay window
-		//
-		// TODO: This currently does not support creating new windows
-		// see Session::Overlay for where logic needs to be implemeted
 		model := tea.Model(m)
 		m.overlay = overlay.New(&model, m.focused)
 		cmd = m.overlay.Model.(tea.Model).Init()
@@ -163,8 +173,10 @@ func (m *model) switchKeyMessage(msg tea.KeyMsg, sendOverlayUpdate *bool) (cmd t
 			// deleting panes by providing options for s&x, S&X where
 			// S & X provide options without the dialog.
 			key := msg.String()
+			log.Debug("got key", "key", key)
 			if len(key) == 1 && key[0] >= '0' && key[0] <= '9' {
-				m.lastch = (uint(key[0]-'0') + 9) % 10
+				m.lastch = ((uint(key[0]-'0') + 9) % 10) + m.manager.BaseIndex()
+				log.Debug("using", "lastch", m.lastch, "BaseIndex", m.manager.BaseIndex())
 			}
 		}
 	}

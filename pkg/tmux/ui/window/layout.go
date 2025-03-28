@@ -26,6 +26,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/tmux"
 )
 
 const (
@@ -119,14 +120,21 @@ func (w *Window) parseNode(input string) (*Node, string, error) {
 	x, _ := strconv.Atoi(matches[3])
 	y, _ := strconv.Atoi(matches[4])
 
-	var pane *int
+	var pane *uint
 	if matches[5] != "" {
-		id, _ := strconv.Atoi(matches[5])
-		pane = &id
+		id, _ := strconv.ParseUint(matches[5], 10, 64)
+		uid := uint(id)
+		pane = &uid
+	}
+
+	var index uint
+	if pane != nil {
+		index = tmux.GetPaneIndex(*pane)
 	}
 
 	node := Node{
 		Height: height,
+		Index:  &index,
 		PaneID: pane,
 		Width:  width,
 		X:      x,

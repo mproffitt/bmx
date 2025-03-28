@@ -43,7 +43,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		msg.Focus = createpanel.Button
 
 		// Send the message back to the panel
-		m.panel, cmd = m.panel.Update(msg)
+		var model tea.Model
+		model, cmd = m.panel.Update(msg)
+		m.panel = model.(*createpanel.Model)
 		cmds = append(cmds, cmd)
 
 	case createpanel.ObserverMsg:
@@ -103,8 +105,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.Name = name
 			msg.Path = path
 		}
-
-		m.panel, cmd = m.panel.Update(msg)
+		var model tea.Model
+		model, cmd = m.panel.Update(msg)
+		m.panel = model.(*createpanel.Model)
 		cmds = append(cmds, cmd)
 
 	case tea.KeyMsg:
@@ -131,7 +134,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.keymap.Pagedown, m.keymap.Pageup):
 			m.table, _ = m.table.Update(msg)
 		default:
-			m.panel, cmd = m.panel.Update(msg)
+			var model tea.Model
+			model, cmd = m.panel.Update(msg)
+			m.panel = model.(*createpanel.Model)
 			cmds = append(cmds, cmd)
 		}
 	case dialog.DialogStatusMsg:

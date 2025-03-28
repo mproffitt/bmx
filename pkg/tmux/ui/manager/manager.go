@@ -60,16 +60,20 @@ const (
 
 type Model struct {
 	sync.Mutex
-	sessions []*session.Session
-	colours  *config.ColourStyles
-	Ready    bool
+	sessions  []*session.Session
+	colours   *config.ColourStyles
+	baseIndex uint
+	Ready     bool
 }
 
 type Iterator func(yield func(int, *session.Session) bool)
 
 // Creates a new Session Manager
 func New() (*Model, Iterator) {
-	m := Model{}
+	baseIndex := tmux.GetBaseIndex()
+	m := Model{
+		baseIndex: baseIndex,
+	}
 
 	return &m, func(yield func(key int, val *session.Session) bool) {
 		func(yield func(key int, val *session.Session) bool) bool {
@@ -81,6 +85,10 @@ func New() (*Model, Iterator) {
 			return false
 		}(yield)
 	}
+}
+
+func (m *Model) BaseIndex() uint {
+	return m.baseIndex
 }
 
 func (m *Model) Init() tea.Cmd {

@@ -34,11 +34,6 @@ import (
 	tmuxui "github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
 
-// Has the current overlay got an active dialog on it
-type HasActiveDialog interface {
-	HasActiveDialog() bool
-}
-
 // This is the main logic switch for all UI behaviour in the
 // app. The purpose of this is to direct messages to the correct
 // location, only updating enabled or focused views as and when
@@ -138,9 +133,14 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 	case createpanel.ObserverMsg:
-		if m.overlay != nil {
-			_, cmd = m.overlay.Model.Update(msg)
-			cmds = append(cmds, cmd)
+		switch m.active {
+		case sessionManager:
+			if m.overlay != nil {
+				_, cmd = m.overlay.Model.Update(msg)
+				cmds = append(cmds, cmd)
+			}
+		case windowManager:
+			cmds = append(cmds, m.session.CreateWindow(msg), helpers.ReloadManagerCmd())
 		}
 	case dialog.DialogStatusMsg:
 		updateModel := false
@@ -186,6 +186,11 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, helpers.ReloadManagerCmd())
 		}
 	case helpers.ReloadManagerMsg:
+		// Supress the command coming from manager.Reload here
+		//
+		// If we don't suppress this command, we risk building an
+		// infinite loop of manager reloading
+		_ = m.manager.Reload()
 		m.resize()
 		m.setItems()
 		if m.list.Index() >= len(m.list.Items()) {

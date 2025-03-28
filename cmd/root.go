@@ -56,7 +56,11 @@ func Execute() {
 			fmt.Println("fatal:", err)
 			os.Exit(1)
 		}
-		defer f.Close()
+		defer func() {
+			if err := f.Close(); err != nil {
+				log.Error("failed to close file `debug.log`", "error", err)
+			}
+		}()
 		log.SetLevel(log.DebugLevel)
 		log.SetOutput(f)
 	}
@@ -87,7 +91,7 @@ func init() {
 func run(m tea.Model) {
 	p := tea.NewProgram(m, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error running program:\n%s\n", err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "Error running program:\n%s\n", err.Error())
 		os.Exit(1)
 	}
 }

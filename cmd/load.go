@@ -48,7 +48,7 @@ var loadCmd = &cobra.Command{
 		if tmux.IsRunning() {
 			log.Warn("tmux server is currently running. will not continue")
 			if bmxConfig.DefaultSession != "" {
-				fmt.Fprintf(os.Stdout, bmxConfig.DefaultSession)
+				fmt.Println(bmxConfig.DefaultSession)
 			}
 			return
 		}
@@ -88,7 +88,7 @@ var loadCmd = &cobra.Command{
 		}
 
 		if bmxConfig.DefaultSession != "" {
-			fmt.Fprintf(os.Stdout, bmxConfig.DefaultSession)
+			fmt.Println(bmxConfig.DefaultSession)
 		}
 	},
 }
@@ -135,22 +135,17 @@ func createSession(session helpers.Session, wg *sync.WaitGroup) {
 func createWindow(session, sPath string, window helpers.Window) {
 	targetWindow := fmt.Sprintf("%s:%d", session, window.Index)
 	log.Info("creating", "window", targetWindow)
-	windowName := window.Name
 	layout := window.Layout
 
 	var err error
 	// create window if it does not already exist
 	for !tmux.HasWindow(session, window.Index) {
-		err = tmux.CreateWindow(targetWindow, sPath, "", true)
+		err = tmux.CreateWindow(targetWindow, window.Name, sPath, "", true)
 		if err != nil {
 			log.Error("failed to create window", "error", err)
 			return
 		}
 		<-time.After(10 * time.Millisecond)
-	}
-
-	if windowName != "" {
-		tmux.RenameWindow(targetWindow, windowName)
 	}
 
 	// create panes
