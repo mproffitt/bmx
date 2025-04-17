@@ -24,7 +24,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
+	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/muesli/reflow/wrap"
 )
 
 type BmxExecError struct {
@@ -65,6 +68,71 @@ func (t *BmxExecError) Error() string {
 	}
 
 	return builder.String()
+}
+
+func (t *BmxExecError) StyledError(w int, c config.ColourStyles) string {
+	var builder strings.Builder
+	indent := len("command:") + 2
+	if t.Command != "" {
+		command := wrap.String(t.Command, w-(2*indent))
+		builder.WriteString(lipgloss.NewStyle().Foreground(c.Cyan).Render("command:"))
+		for i, line := range strings.Split(command, "\n") {
+			style := lipgloss.NewStyle().Foreground(c.BrightCyan).MarginLeft(2)
+			if i > 0 {
+				style = style.MarginLeft(indent)
+			}
+			builder.WriteString(style.Render(line))
+			builder.WriteString("\n")
+		}
+	}
+	if t.Stdout != "" {
+		stdout := wrap.String(t.Stdout, w-(2*indent))
+		builder.WriteString(lipgloss.NewStyle().Foreground(c.BrightCyan).Render("stdout:"))
+		for i, line := range strings.Split(stdout, "\n") {
+			style := lipgloss.NewStyle().Foreground(c.Cyan).MarginLeft(indent - len("stdout:"))
+			if i > 0 {
+				style = style.MarginLeft(indent)
+			}
+			builder.WriteString(style.Render(line))
+			builder.WriteString("\n")
+		}
+	}
+	if t.Stderr != "" {
+		stderr := wrap.String(t.Stderr, w-(2*indent))
+		builder.WriteString(lipgloss.NewStyle().Foreground(c.BrightPurple).Render("stderr:"))
+		for i, line := range strings.Split(stderr, "\n") {
+			style := lipgloss.NewStyle().Foreground(c.Purple).MarginLeft(indent - len("stderr:"))
+			if i > 0 {
+				style = style.MarginLeft(indent)
+			}
+			builder.WriteString(style.Render(line))
+			builder.WriteString("\n")
+		}
+	}
+	if t.error != nil && t.error.Error() != t.Stderr {
+		error := wrap.String(t.error.Error(), w-(2*indent))
+		builder.WriteString(lipgloss.NewStyle().Foreground(c.Red).Render("error:"))
+		for i, line := range strings.Split(error, "\n") {
+			style := lipgloss.NewStyle().Foreground(c.BrightRed).MarginLeft(indent - len("error:"))
+			if i > 0 {
+				style = style.MarginLeft(indent)
+			}
+			builder.WriteString(style.Render(line))
+			builder.WriteString("\n")
+		}
+	}
+
+	content := strings.TrimSpace(builder.String())
+
+	return lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder(), true).
+		BorderForeground(c.Red).
+		Padding(1, 2, 1, 2).
+		Render(content)
+}
+
+func (t *BmxExecError) SetError(err error) {
+	t.error = err
 }
 
 func execCmd(command string, args []string) (string, string, error) {

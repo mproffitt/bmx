@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/google/uuid"
 	"github.com/mproffitt/bmx/pkg/components/icons"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/muesli/reflow/truncate"
@@ -29,16 +30,25 @@ const (
 )
 
 const (
-	padding   = 2
-	maxHeight = 4
-	maxWidth  = 35
+	padding         = 2
+	maxHeight       = 4
+	maxWidth        = 35
+	DefaultProgress = 0.01
+	DefaultDuration = 55 * time.Millisecond
 )
+
+func newID() string {
+	return uuid.NewString()[:8]
+}
 
 type (
 	TickMsg     time.Time
 	NewToastMsg struct {
 		Type    ToastType
 		Message string
+	}
+	FrameMsg struct {
+		id string
 	}
 )
 
@@ -52,18 +62,23 @@ func NewToastCmd(t ToastType, m string) tea.Cmd {
 }
 
 type Model struct {
+	id      string
 	Message string
 	Type    ToastType
 	Icon    rune
 	Height  int
 	Width   int
 
-	viewport    viewport.Model
-	progress    progress.Model
-	colours     config.ColourStyles
-	percent     float64
-	styles      styles
-	activeStyle *lipgloss.Style
+	viewport          viewport.Model
+	progress          progress.Model
+	colours           config.ColourStyles
+	percent           float64
+	styles            styles
+	activeStyle       *lipgloss.Style
+	completionCommand tea.Cmd
+
+	progressPercent float64
+	tickDuration    time.Duration
 }
 
 type styles struct {
@@ -75,11 +90,15 @@ type styles struct {
 
 func New(t ToastType, message string, colours config.ColourStyles) *Model {
 	m := Model{
-		Message: message,
-		Type:    t,
-		Width:   maxWidth,
-		colours: colours,
-		percent: 1.0,
+		id:              newID(),
+		Message:         message,
+		Type:            t,
+		Width:           maxWidth,
+		colours:         colours,
+		percent:         1.0,
+		progressPercent: DefaultProgress,
+		tickDuration:    DefaultDuration,
+
 		styles: styles{
 			info: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
@@ -149,17 +168,33 @@ func (m *Model) Init() tea.Cmd {
 }
 
 func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
-	switch msg.(type) {
-	case TickMsg:
-		m.percent -= 0.01
+	switch msg := msg.(type) {
+	case FrameMsg:
+		if msg.id != m.id {
+			break
+		}
+		m.percent -= m.progressPercent
 		if m.percent <= .0 {
-			return nil, nil
+			return nil, m.completionCommand
 		}
 		return m, m.tickCmd()
-
-	default:
-		return m, nil
 	}
+	return m, nil
+}
+
+func (m *Model) SetCompletionCommand(cmd tea.Cmd) *Model {
+	m.completionCommand = cmd
+	return m
+}
+
+func (m *Model) SetProgressSpeed(speed float64) *Model {
+	m.progressPercent = speed
+	return m
+}
+
+func (m *Model) SetTickDuration(duration time.Duration) *Model {
+	m.tickDuration = duration
+	return m
 }
 
 func (m *Model) View() string {
@@ -187,7 +222,7 @@ func (m *Model) View() string {
 }
 
 func (m *Model) tickCmd() tea.Cmd {
-	return tea.Tick(55*time.Millisecond, func(t time.Time) tea.Msg {
-		return TickMsg(t)
+	return tea.Tick(m.tickDuration, func(t time.Time) tea.Msg {
+		return FrameMsg{id: m.id}
 	})
 }

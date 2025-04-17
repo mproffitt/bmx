@@ -39,6 +39,12 @@ type (
 	ContextDeleteMsg struct{}
 )
 
+func ContextChangeCmd() tea.Cmd {
+	return func() tea.Msg {
+		return ContextChangeMsg{}
+	}
+}
+
 func ContextDeleteCmd() tea.Cmd {
 	return func() tea.Msg {
 		return ContextDeleteMsg{}

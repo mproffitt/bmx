@@ -25,6 +25,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/components/toast"
 	"github.com/mproffitt/bmx/pkg/helpers"
@@ -114,6 +115,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.optionChooser(Session, &m.tomove)
 		case key.Matches(msg, m.keymap.Login):
 			m.optionChooser(ClusterLogin, nil)
+		case key.Matches(msg, m.keymap.Enter):
+			log.Debug("CONTEXT", "msg", msg.String())
+			return m, kubernetes.ContextChangeCmd()
 		}
 
 		if len(m.lists) > 0 {

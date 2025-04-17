@@ -110,8 +110,8 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.list.SetDelegate(m.styles.delegates.shaded)
 			cmds = append(cmds, cmd)
 		case contextPane:
-			m.context, cmd = m.context.Update(kubernetes.ContextChangeMsg{})
-			cmds = append(cmds, cmd)
+			/*m.context, cmd = m.context.Update(kubernetes.ContextChangeMsg{})
+			cmds = append(cmds, cmd)*/
 		case overlayPane:
 			if !sendOverlayUpdate {
 				break
@@ -122,7 +122,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			cmds = append(cmds, cmd)
 		}
 
-	case kubernetes.ContextDeleteMsg:
+	case kubernetes.ContextDeleteMsg, kubernetes.ContextChangeMsg:
 		m.context, cmd = m.context.Update(msg)
 		cmds = append(cmds, cmd)
 	case helpers.OverlayMsg:
@@ -208,7 +208,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case toast.NewToastMsg:
 		m.toast = toast.New(msg.Type, msg.Message, m.config.Colours())
 		cmds = append(cmds, m.toast.Init())
-	case toast.TickMsg:
+	case toast.FrameMsg:
 		m.toast, cmd = m.toast.Update(msg)
 		cmds = append(cmds, cmd)
 	}
