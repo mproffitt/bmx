@@ -33,6 +33,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/muesli/reflow/truncate"
 )
 
@@ -91,9 +92,9 @@ func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth in
 		keymap:     mapKeys(),
 		listWidth:  min(columnWidth, KubernetesListWidth),
 		paginator: &paginator.Model{
-			ActiveDot:    lipgloss.NewStyle().Foreground(c.Colours().BrightWhite).Render("•"),
+			ActiveDot:    lipgloss.NewStyle().Foreground(theme.Colours.BrightWhite).Render("•"),
 			ArabicFormat: "%d/%d",
-			InactiveDot:  lipgloss.NewStyle().Foreground(c.Colours().BrightBlack).Render("•"),
+			InactiveDot:  lipgloss.NewStyle().Foreground(theme.Colours.BrightBlack).Render("•"),
 			KeyMap:       paginator.DefaultKeyMap,
 			Page:         0,
 			PerPage:      cols,
@@ -105,14 +106,14 @@ func NewKubectxPane(c *config.Config, session string, rows, cols, columnWidth in
 			list:      lipgloss.NewStyle().Margin(1, 0, 0, 0).Width(columnWidth),
 			viewportNormal: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(c.Colours().Black).
+				BorderForeground(theme.Colours.Black).
 				AlignHorizontal(lipgloss.Center).
 				AlignVertical(lipgloss.Center).
 				PaddingLeft(2).
 				PaddingRight(2),
 			viewportFocused: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(c.Colours().Blue).
+				BorderForeground(theme.Colours.Blue).
 				AlignHorizontal(lipgloss.Center).
 				AlignVertical(lipgloss.Center).
 				PaddingLeft(2).
@@ -156,11 +157,11 @@ func (m *Model) Overlay() helpers.UseOverlay {
 		builder.WriteString(lipgloss.PlaceHorizontal(config.DialogWidth, lipgloss.Center,
 			lipgloss.NewStyle().
 				Bold(true).
-				Foreground(m.config.Colours().BrightBlue).
+				Foreground(theme.Colours.BrightBlue).
 				Padding(1).
 				Render(m.todelete)))
 		builder.WriteString("\ndeleting means you will no longer be logged in to this cluster")
-		dialog := dialog.NewConfirmDialog(builder.String(), m.config, config.DialogWidth)
+		dialog := dialog.NewConfirmDialog(builder.String(), config.DialogWidth)
 		return dialog.(helpers.UseOverlay)
 	}
 
@@ -244,11 +245,11 @@ func (m *Model) View() string {
 		titlestring := "Kubernetes Contexts : " + m.kubeconfig
 		titlestring = truncate.String(titlestring, uint(m.width))
 		title = lipgloss.NewStyle().
-			Foreground(m.config.Colours().Yellow).Align(lipgloss.Left).
+			Foreground(theme.Colours.Yellow).Align(lipgloss.Left).
 			Render(titlestring)
 	}
 
-	paginated := lipgloss.NewStyle().Foreground(m.config.Colours().Blue).
+	paginated := lipgloss.NewStyle().Foreground(theme.Colours.Blue).
 		Padding(2).
 		Render("No active contexts")
 	paginated = lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, paginated)
@@ -270,27 +271,27 @@ func (m *Model) View() string {
 func (m *Model) createActiveDelegate() ItemDelegate {
 	delegate := m.styles.delegates.base
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(m.config.Colours().BrightBlue)
+		Foreground(theme.Colours.BrightBlue)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(m.config.Colours().BrightWhite)
+		Foreground(theme.Colours.BrightWhite)
 	return delegate
 }
 
 func (m *Model) createBaseDelegate() ItemDelegate {
 	delegate := NewItemDelegate()
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(m.config.Colours().Blue)
+		Foreground(theme.Colours.Blue)
 	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(m.config.Colours().BrightBlack)
+		Foreground(theme.Colours.BrightBlack)
 
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
 		UnsetBorderLeft().
 		PaddingLeft(2).
-		Foreground(m.config.Colours().Blue)
+		Foreground(theme.Colours.Blue)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
 		UnsetBorderLeft().
 		PaddingLeft(2).
-		Foreground(m.config.Colours().BrightBlack)
+		Foreground(theme.Colours.BrightBlack)
 	return delegate
 }
 
@@ -345,14 +346,14 @@ func (m *Model) createPaginatedColumns() []string {
 func (m *Model) createShadedDelegate() ItemDelegate {
 	delegate := NewItemDelegate()
 	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(m.config.Colours().Black)
+		Foreground(theme.Colours.Black)
 
 	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(m.config.Colours().Black)
+		Foreground(theme.Colours.Black)
 	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(m.config.Colours().Black)
+		Foreground(theme.Colours.Black)
 	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(m.config.Colours().Black)
+		Foreground(theme.Colours.Black)
 	return delegate
 }
 

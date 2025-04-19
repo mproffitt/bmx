@@ -23,7 +23,7 @@ import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 const logo = `
@@ -40,14 +40,12 @@ __/\\\\\\\\\\\\\____/\\\\____________/\\\\__/\\\_______/\\\_
 
 type Model struct {
 	spinner spinner.Model
-	colours config.ColourStyles
 }
 
-func New(colours config.ColourStyles) *Model {
+func New() *Model {
 	spinner := spinner.New(spinner.WithSpinner(spinner.Meter))
 	return &Model{
 		spinner: spinner,
-		colours: colours,
 	}
 }
 
@@ -63,5 +61,5 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 
 func (m *Model) View() string {
 	content := lipgloss.JoinVertical(lipgloss.Center, logo, m.spinner.View())
-	return lipgloss.NewStyle().Foreground(m.colours.Blue).Render(content)
+	return lipgloss.NewStyle().Foreground(theme.Colours.Blue).Render(content)
 }

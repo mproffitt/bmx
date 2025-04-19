@@ -11,9 +11,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/components/viewport"
-	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/exec"
 	"github.com/mproffitt/bmx/pkg/helpers"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 type Observing interface {
@@ -75,7 +75,6 @@ func ObserverCmd(msg ObserverMsg) tea.Cmd {
 
 type Model struct {
 	as       ViewAs
-	colours  config.ColourStyles
 	current  *textinput.Model
 	focus    Focus
 	height   int
@@ -100,11 +99,10 @@ type styles struct {
 	active lipgloss.Style
 }
 
-func New(colours config.ColourStyles) *Model {
+func New() *Model {
 	model := Model{
-		as:      Embedded,
-		colours: colours,
-		height:  10,
+		as:     Embedded,
+		height: 10,
 		inputs: inputs{
 			command: textinput.New(),
 			name:    textinput.New(),
@@ -115,20 +113,20 @@ func New(colours config.ColourStyles) *Model {
 		titlepos: viewport.None,
 		styles: styles{
 			active: lipgloss.NewStyle().
-				Foreground(colours.BrightRed).
+				Foreground(theme.Colours.BrightRed).
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Red).
+				BorderForeground(theme.Colours.Red).
 				Padding(0, 4).
 				MarginLeft(2),
 			button: lipgloss.NewStyle().
-				Foreground(colours.Black).
+				Foreground(theme.Colours.Black).
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Black).
+				BorderForeground(theme.Colours.Black).
 				Padding(0, 4).
 				MarginLeft(2),
 			input: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Black),
+				BorderForeground(theme.Colours.Black),
 		},
 	}
 
@@ -412,13 +410,13 @@ func (m *Model) View() string {
 		return content
 	}
 
-	viewport := viewport.New(m.colours, m.width, m.height)
+	viewport := viewport.New(m.width, m.height)
 	viewport.SetTitle(m.title, m.titlepos)
 	viewport.SetContent(content)
 	viewport.BorderStyle(lipgloss.HiddenBorder())
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(m.colours.Black).
+		BorderForeground(theme.Colours.Black).
 		Render(viewport.View())
 }
 

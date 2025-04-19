@@ -26,7 +26,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
-	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/muesli/reflow/wrap"
 )
 
@@ -70,14 +70,14 @@ func (t *BmxExecError) Error() string {
 	return builder.String()
 }
 
-func (t *BmxExecError) StyledError(w int, c config.ColourStyles) string {
+func (t *BmxExecError) StyledError(w int) string {
 	var builder strings.Builder
 	indent := len("command:") + 2
 	if t.Command != "" {
 		command := wrap.String(t.Command, w-(2*indent))
-		builder.WriteString(lipgloss.NewStyle().Foreground(c.Cyan).Render("command:"))
+		builder.WriteString(lipgloss.NewStyle().Foreground(theme.Colours.Cyan).Render("command:"))
 		for i, line := range strings.Split(command, "\n") {
-			style := lipgloss.NewStyle().Foreground(c.BrightCyan).MarginLeft(2)
+			style := lipgloss.NewStyle().Foreground(theme.Colours.BrightCyan).MarginLeft(2)
 			if i > 0 {
 				style = style.MarginLeft(indent)
 			}
@@ -87,9 +87,9 @@ func (t *BmxExecError) StyledError(w int, c config.ColourStyles) string {
 	}
 	if t.Stdout != "" {
 		stdout := wrap.String(t.Stdout, w-(2*indent))
-		builder.WriteString(lipgloss.NewStyle().Foreground(c.BrightCyan).Render("stdout:"))
+		builder.WriteString(lipgloss.NewStyle().Foreground(theme.Colours.BrightCyan).Render("stdout:"))
 		for i, line := range strings.Split(stdout, "\n") {
-			style := lipgloss.NewStyle().Foreground(c.Cyan).MarginLeft(indent - len("stdout:"))
+			style := lipgloss.NewStyle().Foreground(theme.Colours.Cyan).MarginLeft(indent - len("stdout:"))
 			if i > 0 {
 				style = style.MarginLeft(indent)
 			}
@@ -99,9 +99,9 @@ func (t *BmxExecError) StyledError(w int, c config.ColourStyles) string {
 	}
 	if t.Stderr != "" {
 		stderr := wrap.String(t.Stderr, w-(2*indent))
-		builder.WriteString(lipgloss.NewStyle().Foreground(c.BrightPurple).Render("stderr:"))
+		builder.WriteString(lipgloss.NewStyle().Foreground(theme.Colours.BrightPurple).Render("stderr:"))
 		for i, line := range strings.Split(stderr, "\n") {
-			style := lipgloss.NewStyle().Foreground(c.Purple).MarginLeft(indent - len("stderr:"))
+			style := lipgloss.NewStyle().Foreground(theme.Colours.Purple).MarginLeft(indent - len("stderr:"))
 			if i > 0 {
 				style = style.MarginLeft(indent)
 			}
@@ -111,9 +111,9 @@ func (t *BmxExecError) StyledError(w int, c config.ColourStyles) string {
 	}
 	if t.error != nil && t.error.Error() != t.Stderr {
 		error := wrap.String(t.error.Error(), w-(2*indent))
-		builder.WriteString(lipgloss.NewStyle().Foreground(c.Red).Render("error:"))
+		builder.WriteString(lipgloss.NewStyle().Foreground(theme.Colours.Red).Render("error:"))
 		for i, line := range strings.Split(error, "\n") {
-			style := lipgloss.NewStyle().Foreground(c.BrightRed).MarginLeft(indent - len("error:"))
+			style := lipgloss.NewStyle().Foreground(theme.Colours.BrightRed).MarginLeft(indent - len("error:"))
 			if i > 0 {
 				style = style.MarginLeft(indent)
 			}
@@ -126,7 +126,7 @@ func (t *BmxExecError) StyledError(w int, c config.ColourStyles) string {
 
 	return lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(c.Red).
+		BorderForeground(theme.Colours.Red).
 		Padding(1, 2, 1, 2).
 		Render(content)
 }

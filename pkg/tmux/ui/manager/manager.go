@@ -25,7 +25,6 @@ import (
 	"sync"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
@@ -61,7 +60,6 @@ const (
 type Model struct {
 	sync.Mutex
 	sessions  []*session.Session
-	colours   *config.ColourStyles
 	baseIndex uint
 	Ready     bool
 }
@@ -221,11 +219,6 @@ func (m *Model) UpdateEnvironment() error {
 	return nil
 }
 
-func (m *Model) WithColours(c *config.ColourStyles) *Model {
-	m.colours = c
-	return m
-}
-
 func (m *Model) Reload() tea.Cmd {
 	return m.load()
 }
@@ -237,7 +230,7 @@ func (m *Model) load() tea.Cmd {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			session := session.New(s, m.colours)
+			session := session.New(s)
 			m.Lock()
 			m.sessions = append(m.sessions, session)
 			m.Unlock()

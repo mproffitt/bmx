@@ -30,5 +30,5 @@ func (m *model) displayHelp() {
 		entries = append(entries, m.context.(dialog.UseHelp).Help())
 	}
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+	m.dialog = dialog.HelpDialog(entries...)
 }

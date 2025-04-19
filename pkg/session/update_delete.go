@@ -28,6 +28,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/components/overlay"
 	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/muesli/reflow/wordwrap"
 )
 
@@ -61,7 +62,7 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 	message := "Cannnot delete the current active " + t
 	// Dialog cannot delete active session, use kill instead
 	m.dialog = dialog.NewOKDialog(wordwrap.String(message, width),
-		m.config, config.DialogWidth)
+		config.DialogWidth)
 
 	// TODO: This currently blocks deleting windows in the active session which isn't
 	// really what I'm looking for. Deletion of any but the current active window
@@ -76,7 +77,7 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 			lipgloss.NewStyle().
 				Bold(true).
 				Padding(1, 0).
-				Foreground(m.config.Colours().BrightBlue).
+				Foreground(theme.Colours.BrightBlue).
 				Render(name)))
 		if m.config.CreateSessionKubeConfig {
 			message = wordwrap.String("This will remove the associated kubeconfig"+
@@ -84,7 +85,7 @@ func (m *model) delete(msg tea.Msg) tea.Cmd {
 			builder.WriteString(message)
 		}
 
-		m.dialog = dialog.NewConfirmDialog(builder.String(), m.config, config.DialogWidth)
+		m.dialog = dialog.NewConfirmDialog(builder.String(), config.DialogWidth)
 	}
 	m.dialog.Update(msg)
 	return nil

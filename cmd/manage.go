@@ -24,6 +24,7 @@ import (
 	"os"
 
 	"github.com/mproffitt/bmx/pkg/session"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/spf13/cobra"
 )
@@ -34,7 +35,7 @@ var manageCmd = &cobra.Command{
 	Short: "run the session manager",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if !noPopup {
-			err := tmux.DisplayPopup("68%", "70%", createTitle("Session Manager"), bmxConfig.Colours().Black.Dark, []string{
+			err := tmux.DisplayPopup("68%", "70%", createTitle("Session Manager"), theme.Colours.Black.Dark, []string{
 				tmuxExec, "--no-popup", "manage",
 			})
 			if err != nil {

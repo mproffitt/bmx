@@ -206,7 +206,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd = m.save()
 		cmds = append(cmds, cmd, toast.NewToastCmd(toast.Success, "Sessions saved"))
 	case toast.NewToastMsg:
-		m.toast = toast.New(msg.Type, msg.Message, m.config.Colours())
+		m.toast = toast.New(msg.Type, msg.Message)
 		cmds = append(cmds, m.toast.Init())
 	case toast.FrameMsg:
 		m.toast, cmd = m.toast.Update(msg)
@@ -215,7 +215,7 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	// handle error in dialog
 	if err != nil {
-		m.dialog = dialog.NewOKDialog(err.Error(), m.config, config.DialogWidth)
+		m.dialog = dialog.NewOKDialog(err.Error(), config.DialogWidth)
 		m.dialog, cmd = m.dialog.Update(msg)
 		cmds = append(cmds, cmd)
 	}

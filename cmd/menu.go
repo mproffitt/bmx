@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/spf13/cobra"
 )
@@ -53,8 +54,8 @@ var menuCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := tmux.DisplayMenu(
 			createTitle("Session commands"),
-			bmxConfig.Colours().Black.Dark,
-			bmxConfig.Colours().Fg.Dark,
+			theme.Colours.Black.Dark,
+			theme.Colours.Fg.Dark,
 			"",
 			menu,
 		)

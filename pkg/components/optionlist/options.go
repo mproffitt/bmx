@@ -24,8 +24,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/evertras/bubble-table/table"
-	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 const (
@@ -55,7 +55,6 @@ var customBorder = table.Border{
 
 type OptionModel struct {
 	cols        []table.Column
-	config      *config.Config
 	filterInput textinput.Model
 	height      int
 	rows        []table.Row
@@ -91,23 +90,22 @@ func (o Option) GetValue() string {
 	return o.Value
 }
 
-func NewOptionModel[T Options](options T, config *config.Config) *OptionModel {
+func NewOptionModel[T Options](options T) *OptionModel {
 	n := OptionModel{
-		config:      config,
 		filterInput: textinput.New(),
 		rows:        make([]table.Row, 0),
 		styles: optionStyles{
 			overlay: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(config.Colours().Black).
+				BorderForeground(theme.Colours.Black).
 				Padding(0, 1),
 			filter: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(config.Colours().Green),
+				BorderForeground(theme.Colours.Green),
 			table: lipgloss.NewStyle().
 				Align(lipgloss.Left).
-				BorderForeground(config.Colours().Black).
-				Foreground(config.Colours().BrightBlue).
+				BorderForeground(theme.Colours.Black).
+				Foreground(theme.Colours.BrightBlue).
 				Margin(1).
 				Padding(0, 2),
 		},
@@ -197,7 +195,7 @@ func (n *OptionModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (n *OptionModel) View() string {
 	title := lipgloss.NewStyle().Padding(0, 2).
 		Border(lipgloss.RoundedBorder(), false, false, true, false).
-		Foreground(n.config.Colours().Yellow).Align(lipgloss.Center).
+		Foreground(theme.Colours.Yellow).Align(lipgloss.Center).
 		Render(n.title)
 
 	filter := n.styles.filter.Render(n.filterInput.View())

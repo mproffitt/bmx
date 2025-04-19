@@ -24,6 +24,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 const (
@@ -60,7 +61,7 @@ type configModelStyles struct {
 // Although the primary config is fairly basic, this helps
 // guide users in its creation.
 func NewConfigModel(c *Config) *configModel {
-	highlight := c.Colours().Cyan
+	highlight := theme.Colours.Cyan
 	m := configModel{
 		config: c,
 		tabs: []string{

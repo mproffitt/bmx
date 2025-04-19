@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/log"
+	"github.com/mproffitt/bmx/pkg/theme"
 	rftc "github.com/muesli/reflow/truncate"
 )
 
@@ -30,9 +31,9 @@ func (m *model) makePreview(session string, window uint64, pane uint) {
 
 func (m *model) makeZoomedOut(session string, windowIndex uint64) string {
 	window := m.manager.Session(session).Window(windowIndex)
-	colour := m.config.Colours().Black
+	colour := theme.Colours.Black
 	if m.focused == previewPane {
-		colour = m.config.Colours().Blue
+		colour = theme.Colours.Blue
 	}
 
 	w0, h0 := m.preview.GetSize()

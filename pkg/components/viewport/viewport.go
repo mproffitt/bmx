@@ -24,7 +24,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/components/overlay"
-	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/muesli/reflow/padding"
 )
 
@@ -43,7 +43,6 @@ type Model struct {
 	Content       string
 	Title         string
 	borderStyle   lipgloss.Border
-	colours       config.ColourStyles
 	height        int
 	width         int
 	viewport      viewport.Model
@@ -51,9 +50,8 @@ type Model struct {
 	focus         bool
 }
 
-func New(colours config.ColourStyles, width, height int) *Model {
+func New(width, height int) *Model {
 	m := Model{
-		colours:       colours,
 		height:        height,
 		titlePosition: None,
 		width:         width,
@@ -133,12 +131,12 @@ func (m *Model) View() string {
 		return ""
 	}
 
-	borderColour := m.colours.Black
+	borderColour := theme.Colours.Black
 	if m.focus {
-		borderColour = m.colours.Blue
+		borderColour = theme.Colours.Blue
 	}
 
-	title := lipgloss.NewStyle().Foreground(m.colours.Yellow).Render(m.Title)
+	title := lipgloss.NewStyle().Foreground(theme.Colours.Yellow).Render(m.Title)
 	{
 		if m.titlePosition == Inline {
 			title = padding.String(title, uint(m.width-4))

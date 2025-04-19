@@ -25,5 +25,5 @@ func (m *Model) displayHelp() {
 	entries := make([]dialog.HelpEntry, 0)
 	entries = append(entries, m.Help())
 
-	m.dialog = dialog.HelpDialog(m.config, entries...)
+	m.dialog = dialog.HelpDialog(entries...)
 }

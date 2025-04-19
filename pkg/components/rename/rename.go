@@ -9,6 +9,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/components/overlay"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/session"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/window"
 )
@@ -21,9 +22,8 @@ type Model struct {
 
 func New(what session.Renamable, config *config.Config) *Model {
 	m := Model{
-		config: config,
-		input:  textinput.New(),
-		model:  what,
+		input: textinput.New(),
+		model: what,
 	}
 	m.input.Width = 30
 	m.input.Focus()
@@ -76,7 +76,7 @@ func (m *Model) Update(msg tea.Msg) (*Model, tea.Cmd) {
 func (m *Model) View() string {
 	content := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder(), true).
-		BorderForeground(m.config.Colours().Green).
+		BorderForeground(theme.Colours.Green).
 		Render(m.input.View())
 
 	name := m.model.GetName()

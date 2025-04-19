@@ -35,6 +35,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/repos"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 var customBorder = table.Border{
@@ -134,40 +135,40 @@ func New(config *config.Config, callback func(map[string]any, bool) tea.Cmd) *Mo
 		spinner: &spinner,
 		styles: styles{
 			table: lipgloss.NewStyle().
-				BorderForeground(config.Colours().Black),
+				BorderForeground(theme.Colours.Black),
 			spinner: lipgloss.NewStyle().
-				Foreground(config.Colours().Purple),
+				Foreground(theme.Colours.Purple),
 			text: lipgloss.NewStyle().
-				Foreground(config.Colours().BrightPurple),
+				Foreground(theme.Colours.BrightPurple),
 			viewport: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder()).
-				BorderForeground(config.Colours().Black),
+				BorderForeground(theme.Colours.Black),
 			title: lipgloss.NewStyle().Padding(0, 0, 0, 1).
-				Foreground(config.Colours().Yellow).Align(lipgloss.Center),
+				Foreground(theme.Colours.Yellow).Align(lipgloss.Center),
 			filter: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(config.Colours().Black),
+				BorderForeground(theme.Colours.Black),
 			button: lipgloss.NewStyle().
-				Foreground(config.Colours().Bg).
-				Background(config.Colours().Fg).
+				Foreground(theme.Colours.Bg).
+				Background(theme.Colours.Fg).
 				Border(lipgloss.RoundedBorder(), true).
-				BorderBackground(config.Colours().Bg).
-				BorderForeground(config.Colours().Black).
+				BorderBackground(theme.Colours.Bg).
+				BorderForeground(theme.Colours.Black).
 				Padding(0, 4).
 				MarginLeft(2),
 
 			activeButton: lipgloss.NewStyle().
-				Foreground(config.Colours().BrightWhite).
-				Background(config.Colours().BrightRed).
+				Foreground(theme.Colours.BrightWhite).
+				Background(theme.Colours.BrightRed).
 				Border(lipgloss.RoundedBorder(), true).
-				BorderBackground(config.Colours().Bg).
-				BorderForeground(config.Colours().Fg).
+				BorderBackground(theme.Colours.Bg).
+				BorderForeground(theme.Colours.Fg).
 				Padding(0, 4).
 				MarginLeft(2).
 				Underline(true),
 		},
 	}
-	model.panel = createpanel.New(config.Colours()).
+	model.panel = createpanel.New().
 		WithObserver(model)
 	model.inputs.filter.ShowSuggestions = true
 	model.inputs.filter.KeyMap = model.getInputKeyMap()
@@ -290,13 +291,13 @@ func (m *Model) drawTable() {
 		Filtered(true).
 		Focused(true).
 		WithBaseStyle(lipgloss.NewStyle().
-			BorderForeground(m.config.Colours().Black).
-			Foreground(m.config.Colours().BrightPurple).
+			BorderForeground(theme.Colours.Black).
+			Foreground(theme.Colours.BrightPurple).
 			Align(lipgloss.Left),
 		).
 		HighlightStyle(lipgloss.NewStyle().
-			Background(m.config.Colours().SelectionBg).
-			Foreground(m.config.Colours().BrightBlue),
+			Background(theme.Colours.SelectionBg).
+			Foreground(theme.Colours.BrightBlue),
 		).
 		WithFooterVisibility(false).
 		WithHeaderVisibility(false).

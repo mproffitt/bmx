@@ -22,6 +22,7 @@ package config
 import (
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 const (
@@ -29,47 +30,47 @@ const (
 	buttonPaddingVertical   = 0
 )
 
-func getTheme(c *Config) *huh.Theme {
+func getTheme() *huh.Theme {
 	button := lipgloss.NewStyle().
 		Padding(buttonPaddingVertical, buttonPaddingHorizontal).
 		MarginRight(1)
-	theme := huh.ThemeCharm()
-	theme.Group = theme.Group.
+	t := huh.ThemeCharm()
+	t.Group = t.Group.
 		PaddingBottom(2).
 		BorderBottom(true).
-		BorderBottomForeground(c.Colours().Black)
+		BorderBottomForeground(theme.Colours.Black)
 
-	theme.Focused = huh.FieldStyles{
+	t.Focused = huh.FieldStyles{
 		Base: lipgloss.NewStyle().
 			PaddingLeft(2).
 			BorderStyle(lipgloss.ThickBorder()).
 			BorderLeft(true).
-			BorderForeground(c.Colours().Black),
+			BorderForeground(theme.Colours.Black),
 		Card:                lipgloss.NewStyle().PaddingLeft(1),
 		ErrorIndicator:      lipgloss.NewStyle().SetString(" *"),
 		ErrorMessage:        lipgloss.NewStyle().SetString(" *"),
 		SelectSelector:      lipgloss.NewStyle().SetString("> "),
 		NextIndicator:       lipgloss.NewStyle().MarginLeft(1).SetString("→"),
 		PrevIndicator:       lipgloss.NewStyle().MarginRight(1).SetString("←"),
-		MultiSelectSelector: lipgloss.NewStyle().SetString("> ").Foreground(c.Colours().BrightBlue),
+		MultiSelectSelector: lipgloss.NewStyle().SetString("> ").Foreground(theme.Colours.BrightBlue),
 		SelectedPrefix:      lipgloss.NewStyle().SetString("[•] "),
 		UnselectedPrefix:    lipgloss.NewStyle().SetString("[ ] "),
-		FocusedButton: button.Foreground(c.Colours().BrightWhite).
-			Background(c.Colours().BrightRed),
-		BlurredButton: button.Foreground(c.Colours().Bg).
-			Background(c.Colours().Fg),
+		FocusedButton: button.Foreground(theme.Colours.BrightWhite).
+			Background(theme.Colours.BrightRed),
+		BlurredButton: button.Foreground(theme.Colours.Bg).
+			Background(theme.Colours.Fg),
 		TextInput: huh.TextInputStyles{
 			Cursor:      lipgloss.NewStyle().Foreground(lipgloss.Color("4")),
 			Placeholder: lipgloss.NewStyle().Foreground(lipgloss.Color("8")),
-			Prompt:      lipgloss.NewStyle().Foreground(c.Colours().Fg),
-			CursorText:  lipgloss.NewStyle().MarginLeft(1).Foreground(c.Colours().Green),
+			Prompt:      lipgloss.NewStyle().Foreground(theme.Colours.Fg),
+			CursorText:  lipgloss.NewStyle().MarginLeft(1).Foreground(theme.Colours.Green),
 		},
-		Title:          lipgloss.NewStyle().Foreground(c.Colours().BrightYellow),
-		SelectedOption: lipgloss.NewStyle().Foreground(c.Colours().BrightBlue),
+		Title:          lipgloss.NewStyle().Foreground(theme.Colours.BrightYellow),
+		SelectedOption: lipgloss.NewStyle().Foreground(theme.Colours.BrightBlue),
 	}
-	theme.Blurred = theme.Focused
-	theme.Blurred.Base = theme.Focused.Base.BorderStyle(lipgloss.HiddenBorder())
-	theme.Blurred.MultiSelectSelector = lipgloss.NewStyle().SetString("")
-	theme.Blurred.SelectedOption = lipgloss.NewStyle().Foreground(c.Colours().BrightBlue)
-	return theme
+	t.Blurred = t.Focused
+	t.Blurred.Base = t.Focused.Base.BorderStyle(lipgloss.HiddenBorder())
+	t.Blurred.MultiSelectSelector = lipgloss.NewStyle().SetString("")
+	t.Blurred.SelectedOption = lipgloss.NewStyle().Foreground(theme.Colours.BrightBlue)
+	return t
 }

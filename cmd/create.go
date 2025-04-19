@@ -26,6 +26,7 @@ import (
 
 	"github.com/mproffitt/bmx/pkg/repos"
 	"github.com/mproffitt/bmx/pkg/repos/ui/table"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/spf13/cobra"
 )
@@ -88,7 +89,7 @@ this will be exported as the $KUBECONFIG environment variable`,
 			run(m)
 			return
 		}
-		err := tmux.DisplayPopup("65%", "50%", createTitle("Create new session"), bmxConfig.Colours().Black.Dark, []string{
+		err := tmux.DisplayPopup("65%", "50%", createTitle("Create new session"), theme.Colours.Black.Dark, []string{
 			tmuxExec, "--no-popup", "create",
 		})
 		if err != nil {

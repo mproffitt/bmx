@@ -66,7 +66,7 @@ func (m *model) View() string {
 	{
 		sessionlist := m.styles.sessionlist.MarginTop(1).Render(m.list.View())
 		w, h := m.list.Width()+2, m.list.Height()
-		left = viewport.New(m.config.Colours(), w, h).
+		left = viewport.New(w, h).
 			SetContent(sessionlist).
 			SetSize(w, h).
 			View()

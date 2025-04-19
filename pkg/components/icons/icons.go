@@ -46,3 +46,8 @@ const (
 	Warning            = '⚠'
 	ZoomIcon           = '󰁌'
 )
+
+const (
+	Ellipsis   = '…'
+	Kubernetes = '󱃾'
+)

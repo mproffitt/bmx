@@ -34,6 +34,7 @@ import (
 	"github.com/mproffitt/bmx/pkg/kubernetes"
 	"github.com/mproffitt/bmx/pkg/repos"
 	"github.com/mproffitt/bmx/pkg/repos/ui/table"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/manager"
 )
@@ -50,17 +51,17 @@ func New(c *config.Config) *model {
 		list:            list.New(items, list.NewDefaultDelegate(), 0, 0),
 		manager:         manager,
 		managerIterator: Iterator,
-		preview:         viewport.New(c.Colours(), 0, 0),
-		splash:          splash.New(c.Colours()),
+		preview:         viewport.New(0, 0),
+		splash:          splash.New(),
 		styles: styles{
 			sessionlist: lipgloss.NewStyle().MarginRight(1),
 			viewportNormal: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(c.Colours().Black).
+				BorderForeground(theme.Colours.Black).
 				MarginRight(1),
 			viewportFocused: lipgloss.NewStyle().
 				BorderStyle(lipgloss.RoundedBorder()).
-				BorderForeground(c.Colours().Blue).
+				BorderForeground(theme.Colours.Blue).
 				MarginRight(1),
 			delegates: delegates{},
 		},
@@ -98,7 +99,7 @@ func (m *model) Overlay() helpers.UseOverlay {
 		repos.SetSize(width, height)
 		return repos.Overlay()
 	case windowManager:
-		cp := createpanel.New(m.config.Colours()).
+		cp := createpanel.New().
 			WithTitle("Create new window", viewport.Inline)
 		cp.SetWidth(width)
 		return cp.Overlay()

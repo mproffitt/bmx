@@ -29,13 +29,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/mproffitt/bmx/pkg/components/icons"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
-)
-
-const (
-	ellipsis = "…"
-
-	kubernetesSymbol = "󱃾"
 )
 
 type ItemDelegate struct {
@@ -87,7 +82,7 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 
 	// Prevent text from exceeding list width
 	textwidth := m.Width() - s.NormalTitle.GetPaddingLeft() - s.NormalTitle.GetPaddingRight() - 2
-	title = ansi.Truncate(title, textwidth, ellipsis)
+	title = ansi.Truncate(title, textwidth, string(icons.Ellipsis))
 
 	// description
 	{
@@ -96,7 +91,7 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 			if i >= d.height-1 {
 				break
 			}
-			lines = append(lines, ansi.Truncate(line, textwidth, ellipsis))
+			lines = append(lines, ansi.Truncate(line, textwidth, string(icons.Ellipis)))
 		}
 		desc = strings.Join(lines, "\n")
 	}
@@ -113,7 +108,7 @@ func (d ItemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 	symbol := " "
 	if item.(kubernetes.KubeContext).IsCurrentContext {
 		symbol = lipgloss.NewStyle().Foreground(lipgloss.Color("#326CE5")).Render(
-			kubernetesSymbol)
+			string(icons.Kubernetes))
 	}
 
 	if symbol != "" {

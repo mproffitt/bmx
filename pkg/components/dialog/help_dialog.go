@@ -24,6 +24,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/theme"
 )
 
 type UseHelp interface {
@@ -43,11 +44,11 @@ type HelpEntry struct {
 	Help string
 }
 
-func HelpDialog(c *config.Config, entries ...HelpEntry) tea.Model {
+func HelpDialog(entries ...HelpEntry) tea.Model {
 	helpWidth := 2 * config.DialogWidth
 	message := lipgloss.NewStyle().
-		Foreground(c.Colours().Yellow).
-		BorderForeground(c.Colours().Black).
+		Foreground(theme.Colours.Yellow).
+		BorderForeground(theme.Colours.Black).
 		Border(lipgloss.RoundedBorder(), false, false, true, false).
 		Render("    Help    ")
 	message = lipgloss.PlaceHorizontal(helpWidth, lipgloss.Center, message)
@@ -58,17 +59,17 @@ func HelpDialog(c *config.Config, entries ...HelpEntry) tea.Model {
 		}
 
 		helpmsg := help.New()
-		helpmsg.Styles.FullKey = lipgloss.NewStyle().Foreground(c.Colours().BrightGreen)
-		helpmsg.Styles.FullDesc = lipgloss.NewStyle().Foreground(c.Colours().BrightCyan)
+		helpmsg.Styles.FullKey = lipgloss.NewStyle().Foreground(theme.Colours.BrightGreen)
+		helpmsg.Styles.FullDesc = lipgloss.NewStyle().Foreground(theme.Colours.BrightCyan)
 		helpmsg.ShowAll = true
 
 		current := lipgloss.NewStyle().
-			Foreground(c.Colours().BrightBlue).
+			Foreground(theme.Colours.BrightBlue).
 			MarginTop(1).
 			Render(entry.Title)
 		if entry.Help != "" {
 			current = lipgloss.JoinVertical(lipgloss.Left, current, lipgloss.NewStyle().
-				Foreground(c.Colours().White).
+				Foreground(theme.Colours.White).
 				MarginBottom(1).
 				Render(entry.Help))
 		}
@@ -79,5 +80,5 @@ func HelpDialog(c *config.Config, entries ...HelpEntry) tea.Model {
 		message = lipgloss.JoinVertical(lipgloss.Left, message, current)
 	}
 
-	return NewOKDialog(message, c, 2*config.DialogWidth)
+	return NewOKDialog(message, 2*config.DialogWidth)
 }

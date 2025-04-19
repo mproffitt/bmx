@@ -17,36 +17,67 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-package session
+package theme
 
 import (
-	"github.com/charmbracelet/bubbles/list"
-	"github.com/mproffitt/bmx/pkg/theme"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/evertras/bubble-table/table"
 )
 
-func (m *model) createListNormalDelegate() list.DefaultDelegate {
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(theme.Colours.Purple)
+const Padding = 2
 
-	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(theme.Colours.BrightBlack)
-	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(theme.Colours.BrightBlue)
-	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(theme.Colours.BrightWhite)
-	return delegate
-}
+var (
+	HiddenTableBorder = table.Border{
+		Top:    "",
+		Left:   "",
+		Right:  "",
+		Bottom: "",
 
-func (m *model) createListShadedDelegate() list.DefaultDelegate {
-	delegate := list.NewDefaultDelegate()
-	delegate.Styles.NormalTitle = delegate.Styles.NormalTitle.
-		Foreground(theme.Colours.BrightBlack)
-	delegate.Styles.NormalDesc = delegate.Styles.NormalTitle.
-		Foreground(theme.Colours.BrightBlack)
-	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.
-		Foreground(theme.Colours.BrightBlack)
-	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.
-		Foreground(theme.Colours.BrightBlack)
-	return delegate
-}
+		TopRight:    "",
+		TopLeft:     "",
+		BottomRight: "",
+		BottomLeft:  "",
+
+		TopJunction:    "",
+		LeftJunction:   "",
+		RightJunction:  "",
+		BottomJunction: "",
+
+		InnerJunction: "",
+		InnerDivider:  "",
+	}
+
+	TabBorder = lipgloss.Border{
+		Top:      "─",
+		Bottom:   "─",
+		Left:     "│",
+		Right:    "│",
+		TopLeft:  "╭",
+		TopRight: "╮",
+
+		BottomLeft:  "┴",
+		BottomRight: "┴",
+	}
+
+	TabActiveBorder = lipgloss.Border{
+		Top:         "─",
+		Bottom:      " ",
+		Left:        "│",
+		Right:       "│",
+		TopLeft:     "╭",
+		TopRight:    "╮",
+		BottomLeft:  "┘",
+		BottomRight: "└",
+	}
+
+	TabGapBorder = lipgloss.Border{
+		Top:         "",
+		Left:        "",
+		Right:       "",
+		TopLeft:     "",
+		TopRight:    "",
+		Bottom:      "─",
+		BottomLeft:  "─",
+		BottomRight: "╮",
+	}
+)

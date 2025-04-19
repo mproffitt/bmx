@@ -25,6 +25,7 @@ import (
 
 	"github.com/mproffitt/bmx/pkg/components/dialog"
 	"github.com/mproffitt/bmx/pkg/kubernetes"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +43,7 @@ var killCmd = &cobra.Command{
 		}
 
 		if !noPopup {
-			err := tmux.DisplayPopup("28", "8", "", bmxConfig.Colours().Black.Dark, []string{
+			err := tmux.DisplayPopup("28", "8", "", theme.Colours.Black.Dark, []string{
 				tmuxExec, "kill", "--no-popup",
 			})
 			if err != nil {
@@ -53,7 +54,7 @@ var killCmd = &cobra.Command{
 		}
 
 		m := dialog.New("Are you sure you want to kill the current session",
-			false, bmxConfig, true, 27)
+			false, true, 27)
 		run(m)
 		fmt.Printf("%+v\n", m)
 		if m.(*dialog.Dialog).Status() == dialog.Confirm {

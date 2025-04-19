@@ -22,8 +22,8 @@ package dialog
 import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
+	"github.com/mproffitt/bmx/pkg/theme"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -41,7 +41,6 @@ const DialogHeight = 15
 type Dialog struct {
 	active     Status
 	done       bool
-	config     *config.Config
 	hasConfirm bool
 	height     int
 	message    string
@@ -73,16 +72,16 @@ func DialogStatusCmd(message DialogStatusMsg) tea.Cmd {
 //
 // This is a convenience method to create a confirmation dialog
 // containing both yes and no buttons
-func NewConfirmDialog(message string, config *config.Config, width int) tea.Model {
-	return New(message, false, config, false, width)
+func NewConfirmDialog(message string, width int) tea.Model {
+	return New(message, false, false, width)
 }
 
 // Creates a new OK dialog
 //
 // This is a convenience method to create a confirmation dialog
 // that only has an OK button
-func NewOKDialog(message string, config *config.Config, width int) tea.Model {
-	return New(message, true, config, false, width)
+func NewOKDialog(message string, width int) tea.Model {
+	return New(message, true, false, width)
 }
 
 // Create a new standalone confirmation dialog
@@ -94,8 +93,8 @@ func NewOKDialog(message string, config *config.Config, width int) tea.Model {
 //
 // This method should not be used from inside the main window.
 // Use NewConfirmDialog for that
-func NewStandaloneConfirmDialog(message string, config *config.Config, width int) tea.Model {
-	return New(message, false, config, true, width)
+func NewStandaloneConfirmDialog(message string, width int) tea.Model {
+	return New(message, false, true, width)
 }
 
 // Create a new OK dialog
@@ -107,15 +106,14 @@ func NewStandaloneConfirmDialog(message string, config *config.Config, width int
 //
 // This method should not be used from inside the main window.
 // Use NewOKDialog for that
-func NewStanaloneOKDialog(message string, config *config.Config, width int) tea.Model {
-	return New(message, true, config, true, width)
+func NewStanaloneOKDialog(message string, width int) tea.Model {
+	return New(message, true, true, width)
 }
 
-func New(message string, cancelOnly bool, c *config.Config, standalone bool, width int) tea.Model {
+func New(message string, cancelOnly bool, standalone bool, width int) tea.Model {
 	height := min(DialogHeight, lipgloss.Height(message)+1)
 	d := Dialog{
 		active:     Cancel,
-		config:     c,
 		hasConfirm: !cancelOnly,
 		height:     height,
 		message:    message,
@@ -123,19 +121,19 @@ func New(message string, cancelOnly bool, c *config.Config, standalone bool, wid
 		styles: styles{
 			dialog: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(c.Colours().Black).
+				BorderForeground(theme.Colours.Black).
 				Padding(1, 0),
 
 			button: lipgloss.NewStyle().
-				Foreground(c.Colours().Bg).
-				Background(c.Colours().Fg).
+				Foreground(theme.Colours.Bg).
+				Background(theme.Colours.Fg).
 				Padding(0, 3).
 				MarginTop(1).
 				MarginRight(2),
 
 			activeButton: lipgloss.NewStyle().
-				Foreground(c.Colours().BrightWhite).
-				Background(c.Colours().BrightRed).
+				Foreground(theme.Colours.BrightWhite).
+				Background(theme.Colours.BrightRed).
 				MarginRight(2).
 				MarginTop(1).
 				Padding(0, 3).

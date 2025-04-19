@@ -43,7 +43,7 @@ type mainmodel struct {
 func NewMainModel(c *Config) *mainmodel {
 	m := mainmodel{
 		config: c,
-		theme:  getTheme(c),
+		theme:  getTheme(),
 		paths:  make([]string, 2),
 	}
 	if c.CreateSessionKubeConfig {

@@ -11,7 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/google/uuid"
 	"github.com/mproffitt/bmx/pkg/components/icons"
-	"github.com/mproffitt/bmx/pkg/config"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/muesli/reflow/truncate"
 	"github.com/muesli/reflow/wordwrap"
 )
@@ -71,7 +71,6 @@ type Model struct {
 
 	viewport          viewport.Model
 	progress          progress.Model
-	colours           config.ColourStyles
 	percent           float64
 	styles            styles
 	activeStyle       *lipgloss.Style
@@ -88,13 +87,12 @@ type styles struct {
 	error   lipgloss.Style
 }
 
-func New(t ToastType, message string, colours config.ColourStyles) *Model {
+func New(t ToastType, message string) *Model {
 	m := Model{
 		id:              newID(),
 		Message:         message,
 		Type:            t,
 		Width:           maxWidth,
-		colours:         colours,
 		percent:         1.0,
 		progressPercent: DefaultProgress,
 		tickDuration:    DefaultDuration,
@@ -102,16 +100,16 @@ func New(t ToastType, message string, colours config.ColourStyles) *Model {
 		styles: styles{
 			info: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Blue),
+				BorderForeground(theme.Colours.Blue),
 			success: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Green),
+				BorderForeground(theme.Colours.Green),
 			warning: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Yellow),
+				BorderForeground(theme.Colours.Yellow),
 			error: lipgloss.NewStyle().
 				Border(lipgloss.RoundedBorder(), true).
-				BorderForeground(colours.Red),
+				BorderForeground(theme.Colours.Red),
 		},
 	}
 
@@ -204,13 +202,13 @@ func (m *Model) View() string {
 	var colour lipgloss.AdaptiveColor
 	switch m.Type {
 	case Info:
-		colour = m.colours.Blue
+		colour = theme.Colours.Blue
 	case Success:
-		colour = m.colours.Green
+		colour = theme.Colours.Green
 	case Warning:
-		colour = m.colours.Yellow
+		colour = theme.Colours.Yellow
 	case Error:
-		colour = m.colours.Red
+		colour = theme.Colours.Red
 	}
 	content := lipgloss.NewStyle().
 		Foreground(colour).

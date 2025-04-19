@@ -28,7 +28,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/mproffitt/bmx/pkg/components/createpanel"
 	"github.com/mproffitt/bmx/pkg/components/toast"
-	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
 	"github.com/mproffitt/bmx/pkg/tmux"
 	"github.com/mproffitt/bmx/pkg/tmux/ui/window"
@@ -49,12 +48,11 @@ type Session struct {
 	Path       string
 	Windows    []*window.Window
 
-	colours *config.ColourStyles
 	command string
 }
 
 // Load a session details and return a new session object
-func New(session string, c *config.ColourStyles) *Session {
+func New(session string) *Session {
 	parts := strings.Split(session, ",")
 
 	s := Session{
@@ -62,7 +60,6 @@ func New(session string, c *config.ColourStyles) *Session {
 		Name:     parts[0],
 		Group:    parts[4],
 		Path:     parts[5],
-		colours:  c,
 	}
 	count, _ := strconv.Atoi(parts[1])
 	s.NumWindows = count

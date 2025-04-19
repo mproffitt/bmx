@@ -57,6 +57,6 @@ func (m *Model) optionChooser(o OptionType, update *string) tea.Cmd {
 	if err != nil {
 		return helpers.NewErrorCmd(err)
 	}
-	m.options = optionlist.NewOptionModel(options, m.config)
+	m.options = optionlist.NewOptionModel(options)
 	return nil
 }

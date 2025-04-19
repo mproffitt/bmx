@@ -27,6 +27,7 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/mproffitt/bmx/pkg/config"
 	"github.com/mproffitt/bmx/pkg/helpers"
+	"github.com/mproffitt/bmx/pkg/theme"
 	"github.com/spf13/cobra"
 )
 
@@ -80,7 +81,7 @@ func Execute() {
 }
 
 func createTitle(t string) string {
-	return fmt.Sprintf("#[align=centre fg=%s] %s ", bmxConfig.Colours().Yellow.Dark, t)
+	return fmt.Sprintf("#[align=centre fg=%s] %s ", theme.Colours.Yellow.Dark, t)
 }
 
 func init() {

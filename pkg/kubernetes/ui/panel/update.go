@@ -144,6 +144,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.options = nil
 			switch m.optionType {
 			case Session:
+				log.Debug("session", "value", value)
 				// Get filename from session
 				newconfig, err := kubernetes.CreateConfig(value)
 				if err != nil {
@@ -165,6 +166,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.reloadContextList()
 
 			case Namespace:
+				log.Debug("namespace", "value", value)
 				if err := kubernetes.SetNamespace(m.context, value, m.kubeconfig); err != nil {
 					return m, helpers.NewErrorCmd(err)
 				}
@@ -172,6 +174,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.reloadContextList()
 
 			case ClusterLogin:
+				log.Debug("clusterlogin", "value", value)
 				if err := kubernetes.TeleportClusterLogin(value); err != nil {
 					return m, helpers.NewErrorCmd(err)
 				}
